@@ -160,7 +160,8 @@ public class CppStatsFolderReader {
 				constants.pop().SaveFeatureConstantInformation(constants.size() + 1);
 			
 		} catch (IOException e) {
-			e.printStackTrace();
+			throw new RuntimeException("Failed to read feature constants from CSV file " + csvFile.getAbsolutePath(),
+					e);
 		}
 		
 		FeatureExpressionCollection.PostAction();
@@ -192,7 +193,8 @@ public class CppStatsFolderReader {
 			}
 			
 		} catch (IOException e) {
-			e.printStackTrace();
+			throw new RuntimeException("Failed to read project LOC metrics from CSV file " + csvFile.getAbsolutePath(),
+					e);
 		}
 		
 		System.out.println(" complete!");	
