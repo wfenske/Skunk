@@ -6,21 +6,26 @@ import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-
-import data.Feature;
-import data.FeatureExpressionCollection;
-import data.FeatureConstant;
-import data.FileCollection;
-import data.MethodCollection;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.w3c.dom.Document;
-import org.w3c.dom.NodeList;
 import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
+
+import data.Feature;
+import data.FeatureConstant;
+import data.FeatureExpressionCollection;
+import data.FileCollection;
+import data.MethodCollection;
 
 /**
  * The Class SrcMlFolderReader.
  */
 public class SrcMlFolderReader {
+
+	Map<String, Document> map = new HashMap<>();
 
 	/**
 	 * Instantiates a new srcmlfolderreader.
@@ -51,37 +56,49 @@ public class SrcMlFolderReader {
 	 *            the feature location
 	 */
 	private void processFileFromLocations(FeatureConstant loc) {
-		try {
-			// Get all lines of the xml and open a positional xml reader
-			InputStream fileInput = new ByteArrayInputStream(this.getFileString(loc.filePath).getBytes());
-			Document doc = PositionalXmlReader.readXML(fileInput);
-			fileInput.close();
-
-			// Assign to file
-			data.File file = FileCollection.GetOrAddFile(loc.filePath);
-			file.AddFeatureConstant(loc);
-
-			// go through each directive and find the directive of the specific
-			// location by using the start position
-			NodeList directives = doc.getElementsByTagName("cpp:directive");
-			for (int i = 0; i < directives.getLength(); i++) {
-				Node current = directives.item(i);
-				if (Integer.parseInt((String) current.getUserData("lineNumber")) == loc.start + 1) {
-					// parent contains the if/endif values
-					current = current.getParentNode();
-
-					// calculate the granularty by checking each sibling node
-					// from start to end of the annotation
-					this.calculateGranularityOfConstant(loc, current);
-
-					// assign this location to its corresponding method
-					this.assignFeatureConstantToMethod(loc, current);
-
-					break;
-				}
+		Document doc = null;
+		// Get all lines of the xml and open a positional xml reader
+		if (map.containsKey(loc.filePath)) {
+			InputStream fileInput = new ByteArrayInputStream(getFileString(loc.filePath).getBytes());
+			try {
+				doc = PositionalXmlReader.readXML(fileInput);
+			} catch (IOException e) {
+				throw new RuntimeException("I/O exception reading stream of file " + loc.filePath, e);
+			} catch (SAXException e) {
+				throw new RuntimeException("Cannot parse file " + loc.filePath, e);
 			}
-		} catch (Exception ex) {
-			ex.printStackTrace();
+			try {
+				fileInput.close();
+			} catch (IOException e) {
+				// we don't care if file closing fails
+			}
+			map.put(loc.filePath, doc);
+		} else {
+			doc = map.get(loc.filePath);
+		}
+
+		// Assign to file
+		data.File file = FileCollection.GetOrAddFile(loc.filePath);
+		file.AddFeatureConstant(loc);
+
+		// go through each directive and find the directive of the specific
+		// location by using the start position
+		NodeList directives = doc.getElementsByTagName("cpp:directive");
+		for (int i = 0; i < directives.getLength(); i++) {
+			Node current = directives.item(i);
+			if (Integer.parseInt((String) current.getUserData("lineNumber")) == loc.start + 1) {
+				// parent contains the if/endif values
+
+				current = current.getParentNode();
+				// calculate the granularty by checking each sibling node
+				// from start to end of the annotation
+				this.calculateGranularityOfConstant(loc, current);
+
+				// assign this location to its corresponding method
+				this.assignFeatureConstantToMethod(loc, current);
+
+				break;
+			}
 		}
 	}
 
@@ -110,13 +127,13 @@ public class SrcMlFolderReader {
 	 *            the file path
 	 * @return the file string
 	 */
-	private String getFileString(String filePath) {
+	private static String getFileString(String filePath) {
 		try {
 			byte[] encoded = Files.readAllBytes(Paths.get(filePath));
 			return new String(encoded, Charset.forName(("UTF-8")));
 		} catch (IOException e) {
+			throw new RuntimeException("I/O exception reading contents of file " + filePath, e);
 		}
-		return "";
 	}
 
 	/**
@@ -174,6 +191,9 @@ public class SrcMlFolderReader {
 		// get the whole text content of the node (signature + method content),
 		// and remove method content until beginning of block
 		String result = functionNode.getTextContent();
+		if (result.indexOf('{') == -1) {
+			System.out.println(result);
+		}
 		result = result.substring(0, result.indexOf('{')).trim();
 
 		// clean signature
