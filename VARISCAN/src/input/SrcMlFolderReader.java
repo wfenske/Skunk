@@ -58,7 +58,7 @@ public class SrcMlFolderReader {
 	private void processFileFromLocations(FeatureConstant loc) {
 		Document doc = null;
 		// Get all lines of the xml and open a positional xml reader
-		if (map.containsKey(loc.filePath)) {
+		if (!map.containsKey(loc.filePath)) {
 			InputStream fileInput = new ByteArrayInputStream(getFileString(loc.filePath).getBytes());
 			try {
 				doc = PositionalXmlReader.readXML(fileInput);
