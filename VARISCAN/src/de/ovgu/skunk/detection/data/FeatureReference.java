@@ -1,17 +1,19 @@
-package data;
+package de.ovgu.skunk.detection.data;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import org.w3c.dom.Node;
 
 /**
- * The Class FeatureConstant.
+ * A reference to a feature, i.e., a place, such as the condition of an
+ * <code>#if</code> directive, that mentions a feature by name.
  */
-public class FeatureConstant implements Comparable<FeatureConstant>{
+public class FeatureReference implements Comparable<FeatureReference>{
 	
 	/** The corresponding feature on this location. */
-	public Feature corresponding;
+	public Feature feature;
 	
 	/** The file path. */
 	public String filePath;
@@ -25,16 +27,14 @@ public class FeatureConstant implements Comparable<FeatureConstant>{
 	/** The end position. */
 	public int end;
 	
-	
-	
 	/** The nesting depth. */
 	public int nestingDepth;
 	
-	/** The not flag. */
+    /** The negation flag. */
 	public Boolean notFlag;
 
 	/** The list of features of combined feature constants in a location (i.e. Feature 1 && Feature 2. */
-	public LinkedList<UUID> combinedWith;
+    public List<UUID> combinedWith;
 
 	
 	
@@ -43,19 +43,27 @@ public class FeatureConstant implements Comparable<FeatureConstant>{
 	
 	
 	
-	/** The method that contains the featureconstant (if inside a method); else = null.  */
+    /**
+     * The method that contains the feature reference (if inside a method); else
+     * = null.
+     */
 	public Method inMethod;
 
 	/**
-	 * Instantiates a new featureconstant.
-	 *
-	 * @param filePath the file path
-	 * @param start the start
-	 * @param end the end
-	 * @param nestingDepth the nesting depth
-	 * @param notFlag the not flag
-	 */
-	public FeatureConstant(String filePath, int start, int end, int nestingDepth, Boolean notFlag)
+     * Instantiates a new featur reference.
+     *
+     * @param filePath
+     *            the file path
+     * @param start
+     *            the start
+     * @param end
+     *            the end
+     * @param nestingDepth
+     *            the nesting depth
+     * @param notFlag
+     *            the not flag
+     */
+	public FeatureReference(String filePath, int start, int end, int nestingDepth, Boolean notFlag)
 	{
 		this.filePath = filePath;
 		this.id = java.util.UUID.randomUUID();
@@ -68,18 +76,17 @@ public class FeatureConstant implements Comparable<FeatureConstant>{
 		
 		this.notFlag = notFlag;
 		
-		this.combinedWith = new LinkedList<UUID>();
+        this.combinedWith = new ArrayList<>();
 		
 		this.granularity = EnumGranularity.NOTDEFINED;
 		this.discipline = EnumDiscipline.NOTDEFINED;
 	}
 	
 	/**
-	 * Indicates if the location if the feature is combined with other features
-	 *
-	 * @return the boolean
-	 */
-	public Boolean CombinedConstant()
+     * @return <code>true</code> if the location of the feature constant also
+     *         references other features; <code>false</code> otherwise
+     */
+    public Boolean IsCombined()
 	{
 		if (combinedWith.size() == 0)
 			return false;
@@ -88,11 +95,11 @@ public class FeatureConstant implements Comparable<FeatureConstant>{
 	}
 	
 	/**
-	 * Sets the granularity based on the current nodeName
-	 *
-	 * @param loc the loc
-	 * @param nodeName the node name
-	 */
+     * Sets the granularity based on the current nodeName
+     *
+     * @param node
+     *            the node name
+     */
 	public void SetGranularity(Node node)
 	{
 		// decide the granularity of the node based on the nodeName
@@ -188,15 +195,15 @@ public class FeatureConstant implements Comparable<FeatureConstant>{
 		if (!(this.granularity == EnumGranularity.NOTDEFINED))
 		{
 			// first time initialize
-			if (this.corresponding.minGranularity == EnumGranularity.NOTDEFINED)
-				this.corresponding.minGranularity = this.granularity;
-			if (this.corresponding.maxGranularity == EnumGranularity.NOTDEFINED)
-				this.corresponding.maxGranularity = this.granularity;
+			if (this.feature.minGranularity == EnumGranularity.NOTDEFINED)
+				this.feature.minGranularity = this.granularity;
+			if (this.feature.maxGranularity == EnumGranularity.NOTDEFINED)
+				this.feature.maxGranularity = this.granularity;
 			
-			if (this.corresponding.maxGranularity.GetValue() < this.granularity.GetValue())
-				this.corresponding.maxGranularity = this.granularity;
-			if (this.corresponding.minGranularity.GetValue() > this.granularity.GetValue())
-				this.corresponding.minGranularity = this.granularity;
+			if (this.feature.maxGranularity.GetValue() < this.granularity.GetValue())
+				this.feature.maxGranularity = this.granularity;
+			if (this.feature.minGranularity.GetValue() > this.granularity.GetValue())
+				this.feature.minGranularity = this.granularity;
 		}
 
 	}
@@ -266,11 +273,11 @@ public class FeatureConstant implements Comparable<FeatureConstant>{
 	}
 
 	@Override
-	public int compareTo(FeatureConstant arg0) 
+    public int compareTo(FeatureReference other)
 	{
-		if (this.start > arg0.start)
+        if (this.start > other.start)
 			return 1;
-		else if (this.start < arg0.start)
+        else if (this.start < other.start)
 			return -1;
 		else
 			return 0;

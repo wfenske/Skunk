@@ -1,4 +1,4 @@
-package output;
+package de.ovgu.skunk.detection.output;
 
 import java.util.*;
 

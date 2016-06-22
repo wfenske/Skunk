@@ -1,26 +1,22 @@
-package data;
+package de.ovgu.skunk.detection.data;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
-
-import org.w3c.dom.Document;
 
 import com.thoughtworks.xstream.XStream;
 
 public class FileCollection 
 {
 	/** The methods per file. */
-	public static List<data.File> Files;
+	public static List<de.ovgu.skunk.detection.data.File> Files;
 	
 	/**
 	 * Instantiates a new method collection.
 	 */
 	public static void Initialize()
 	{
-		Files = new ArrayList<data.File>();
+		Files = new ArrayList<de.ovgu.skunk.detection.data.File>();
 	}
 	
 	/**
@@ -30,15 +26,15 @@ public class FileCollection
 	 * @param doc the doc
 	 * @return the data. file
 	 */
-	public static data.File GetOrAddFile(String filePath)
+	public static de.ovgu.skunk.detection.data.File GetOrAddFile(String filePath)
 	{
-		for (data.File file : Files)
+		for (de.ovgu.skunk.detection.data.File file : Files)
 		{
 			if (file.filePath.equals(filePath))
 				return file;
 		}
 		
-		data.File newFile = new data.File(filePath);
+		de.ovgu.skunk.detection.data.File newFile = new de.ovgu.skunk.detection.data.File(filePath);
 		Files.add(newFile);
 		
 		return newFile;
@@ -50,9 +46,9 @@ public class FileCollection
 	 * @param filePath the file path
 	 * @return the data. file
 	 */
-	public static data.File GetFile(String filePath)
+	public static de.ovgu.skunk.detection.data.File GetFile(String filePath)
 	{
-		for (data.File file : Files)
+		for (de.ovgu.skunk.detection.data.File file : Files)
 		{
 			if (file.filePath.equals(filePath))
 				return file;
@@ -67,7 +63,7 @@ public class FileCollection
 	 */
 	public static void PostAction()
 	{
-		for (data.File file : Files)
+		for (de.ovgu.skunk.detection.data.File file : Files)
 		{
 			file.SetNegationCount();
 			file.SetNumberOfFeatureConstants();
@@ -84,7 +80,7 @@ public class FileCollection
 	public static String SerializeFiles()
 	{
 		// nullify already processed data for memory reasons
-		for (data.File file : Files)
+		for (de.ovgu.skunk.detection.data.File file : Files)
 		{
 			file.emptyLines.clear();
 			file.loac.clear();
@@ -101,9 +97,10 @@ public class FileCollection
 	 *
 	 * @param xml the serialized xml representation
 	 */
+	@SuppressWarnings("unchecked")
 	public static void DeserialzeFiles(File xmlFile)
 	{
 		XStream stream = new XStream();
-		Files = (List<data.File>) stream.fromXML(xmlFile);
+		Files = (List<de.ovgu.skunk.detection.data.File>) stream.fromXML(xmlFile);
 	}
 }

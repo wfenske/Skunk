@@ -1,4 +1,4 @@
-package input;
+package de.ovgu.skunk.detection.input;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -14,11 +14,11 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
-import data.Feature;
-import data.FeatureConstant;
-import data.FeatureExpressionCollection;
-import data.FileCollection;
-import data.MethodCollection;
+import de.ovgu.skunk.detection.data.Feature;
+import de.ovgu.skunk.detection.data.FeatureExpressionCollection;
+import de.ovgu.skunk.detection.data.FeatureReference;
+import de.ovgu.skunk.detection.data.FileCollection;
+import de.ovgu.skunk.detection.data.MethodCollection;
 
 /**
  * The Class SrcMlFolderReader.
@@ -37,16 +37,17 @@ public class SrcMlFolderReader {
 	 * Process files to get metrics from srcMl
 	 */
 	public void ProcessFiles() {
-		System.out.println("\r\n... Processing SrcML files ...");
+        System.out.println();
+        System.out.print("Processing SrcML files ...");
 
 		// go through each feature location and calculate granularity
 		for (Feature feat : FeatureExpressionCollection.GetFeatures()) {
-			for (FeatureConstant loc : feat.getConstants()) {
+			for (FeatureReference loc : feat.getConstants()) {
 				this.processFileFromLocations(loc);
 			}
 		}
 
-		System.out.println("... SrcML processing done!");
+        System.out.println(" done.");
 	}
 
 	/**
@@ -55,7 +56,7 @@ public class SrcMlFolderReader {
 	 * @param loc
 	 *            the feature location
 	 */
-	private void processFileFromLocations(FeatureConstant loc) {
+	private void processFileFromLocations(FeatureReference loc) {
 		Document doc = null;
 		// Get all lines of the xml and open a positional xml reader
 		if (!map.containsKey(loc.filePath)) {
@@ -78,7 +79,7 @@ public class SrcMlFolderReader {
 		}
 
 		// Assign to file
-		data.File file = FileCollection.GetOrAddFile(loc.filePath);
+		de.ovgu.skunk.detection.data.File file = FileCollection.GetOrAddFile(loc.filePath);
 		file.AddFeatureConstant(loc);
 
 		// go through each directive and find the directive of the specific
@@ -102,7 +103,7 @@ public class SrcMlFolderReader {
 		}
 	}
 
-	private void calculateGranularityOfConstant(FeatureConstant loc, Node current) {
+	private void calculateGranularityOfConstant(FeatureReference loc, Node current) {
 		// check sibling nodes until a granularity defining tag is found or
 		// until the end of the annotation
 		Node sibling = current;
@@ -144,7 +145,7 @@ public class SrcMlFolderReader {
 	 * @param annotationNode
 	 *            the annotation node
 	 */
-	private void assignFeatureConstantToMethod(FeatureConstant constant, Node annotationNode) {
+	private void assignFeatureConstantToMethod(FeatureReference constant, Node annotationNode) {
 		// check parent nodes of the annotation until it is of type
 		// function/unit
 		Node parent = annotationNode.getParentNode();
@@ -160,16 +161,16 @@ public class SrcMlFolderReader {
 			String functionSignature = this.createFunctionSignature(parent);
 
 			// get or create method
-			data.Method method = MethodCollection.GetMethod(constant.filePath, functionSignature);
+			de.ovgu.skunk.detection.data.Method method = MethodCollection.GetMethod(constant.filePath, functionSignature);
 
 			if (method == null) {
-				method = new data.Method(functionSignature, Integer.parseInt((String) parent.getUserData("lineNumber")),
+				method = new de.ovgu.skunk.detection.data.Method(functionSignature, Integer.parseInt((String) parent.getUserData("lineNumber")),
 						this.countLines(parent.getTextContent()));
 				MethodCollection.AddMethodToFile(constant.filePath, method);
 			}
 
 			// add method to file
-			data.File file = FileCollection.GetFile(constant.filePath);
+			de.ovgu.skunk.detection.data.File file = FileCollection.GetFile(constant.filePath);
 			if (file != null)
 				file.AddMethod(method);
 

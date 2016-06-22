@@ -1,4 +1,4 @@
-package output;
+package de.ovgu.skunk.detection.output;
 
 /**
  * The Class DetectedDataSaver saves the data that is created after performing the connection. (unsorted data)

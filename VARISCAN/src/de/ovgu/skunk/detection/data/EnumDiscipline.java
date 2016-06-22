@@ -1,4 +1,4 @@
-package data;
+package de.ovgu.skunk.detection.data;
 
 public enum EnumDiscipline {
 	DISCIPLINED (1),

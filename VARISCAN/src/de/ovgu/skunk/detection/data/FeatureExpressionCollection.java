@@ -1,8 +1,11 @@
-package data;
+package de.ovgu.skunk.detection.data;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import com.thoughtworks.xstream.XStream;
@@ -13,11 +16,14 @@ import com.thoughtworks.xstream.XStream;
 public class FeatureExpressionCollection 
 {
 
-	private static ArrayList<Feature> _features;
+    private static Map<String, Feature> _features;
 	private static int _count;
 	private static int _loc;
 	private static int _meanLofc;
-	public static int numberOfFeatureConstants;
+    /**
+     * Number of times any feature constant has been mentioned
+     */
+	public static int numberOfFeatureConstantReferences;
 	
 	/**
 	 * Gets the count of features.
@@ -85,30 +91,31 @@ public class FeatureExpressionCollection
 	 * @param name the name
 	 * @return the feature
 	 */
-	public static Feature GetFeature(String name)
+	public static Feature InternFeature(String name)
 	{
-		for (Feature feature : _features)
-		{
-			if (feature.Name.equals(name))
-				return feature;
-		}
+        Feature existingFeature = _features.get(name);
+        if (existingFeature != null)
+            return existingFeature;
 		
 		// feature missing --> add new
 		Feature newFeature = new Feature(name);
-		AddFeature(newFeature);
+        _features.put(name, newFeature);
+        _count++;
 		return newFeature;
 	}
 	
 	/**
-	 * Gets the feature constant of the specified feature
-	 *
-	 * @param name the name
-	 * @param id the id of the constant
-	 * @return the feature constant
-	 */
-	public static FeatureConstant GetFeatureConstant(String name, UUID id)
+     * Gets the feature constant of the specified feature
+     *
+     * @param name
+     *            the name
+     * @param id
+     *            the id of the constant reference
+     * @return the feature constant or <code>null</code>
+     */
+	public static FeatureReference GetFeatureConstant(String name, UUID id)
 	{
-		for (Feature feature : _features)
+        for (Feature feature : _features.values())
 		{
 			if (feature.constants.containsKey(id))
 				return feature.constants.get(id);
@@ -121,9 +128,9 @@ public class FeatureExpressionCollection
 	 *
 	 * @return the list
 	 */
-	public static List<Feature> GetFeatures()
+    public static Collection<Feature> GetFeatures()
 	{
-		return _features;
+        return _features.values();
 	}
 	
 	/**
@@ -131,21 +138,10 @@ public class FeatureExpressionCollection
 	 */
 	public static void Initialize()
 	{
-		_features = new ArrayList<Feature>();
+        _features = new LinkedHashMap<>();
 		_count = 0;
 		_loc = 0;
-		numberOfFeatureConstants = 0;
-	}
-	
-	/**
-	 * Adds a feature to the collection
-	 *
-	 * @param feature the feature
-	 */
-	public static void AddFeature(Feature feature)
-	{
-		_features.add(feature);
-		_count++;
+		numberOfFeatureConstantReferences = 0;
 	}
 	
 	/**
@@ -153,10 +149,10 @@ public class FeatureExpressionCollection
 	 */
 	public static void PostAction()
 	{
-		for (Feature feat : _features)
+        for (Feature feat : _features.values())
 			_meanLofc = _meanLofc + feat.getLofc();
 		
-		if (_features.size() != 0)
+        if (!_features.isEmpty())
 			_meanLofc = _meanLofc / _features.size();
 	}
 	
@@ -168,7 +164,8 @@ public class FeatureExpressionCollection
 	public static String SerializeFeatures()
 	{
 		XStream stream = new XStream();
-		String xmlFeatures = stream.toXML(_features);
+        ArrayList<Feature> listOfFeatures = new ArrayList<>(_features.values());
+        String xmlFeatures = stream.toXML(listOfFeatures);
 		
 		return xmlFeatures;
 	}
@@ -178,9 +175,13 @@ public class FeatureExpressionCollection
 	 *
 	 * @param xml the serialized xml representation
 	 */
+	@SuppressWarnings("unchecked")
 	public static void DeserialzeFeatures(File xmlFile)
 	{
 		XStream stream = new XStream();
-		_features = (ArrayList<Feature>) stream.fromXML(xmlFile);
+        List<Feature> listOfFeatures = (List<Feature>) stream.fromXML(xmlFile);
+        for (Feature feature : listOfFeatures) {
+            _features.put(feature.Name, feature);
+        }
 	}
 }

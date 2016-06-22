@@ -1,4 +1,4 @@
-package detection;
+package de.ovgu.skunk.detection.detector;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -12,24 +12,23 @@ import java.util.Map.Entry;
 import java.util.Stack;
 import java.util.UUID;
 
-import data.Feature;
-import data.FeatureExpressionCollection;
-import data.FileCollection;
-import data.FeatureConstant;
-import data.Method;
-import data.MethodCollection;
+import de.ovgu.skunk.detection.data.Feature;
+import de.ovgu.skunk.detection.data.FeatureExpressionCollection;
+import de.ovgu.skunk.detection.data.FeatureReference;
+import de.ovgu.skunk.detection.data.FileCollection;
+import de.ovgu.skunk.detection.data.Method;
+import de.ovgu.skunk.detection.data.MethodCollection;
 
-// TODO: Auto-generated Javadoc
 /**
  * The Class Detector.
  */
 public class Detector {
 
-	/**  The config contains the definition of the codesmell. */
+    /** The config contains the definition of the code smell. */
 	private DetectionConfig config;
 	
 	/**  Fitting feature locations with an explanation. */
-	private Map<FeatureConstant, ArrayList<EnumReason>> featureResult;
+    private Map<FeatureReference, List<SmellReason>> featureResult;
 	
 	/**
 	 * Instantiates a new detector.
@@ -39,7 +38,7 @@ public class Detector {
 	public Detector (DetectionConfig config)
 	{
 		this.config = config;
-		this.featureResult = new HashMap<FeatureConstant, ArrayList<EnumReason>>();
+        this.featureResult = new HashMap<>();
 	}
 	
 	/**
@@ -47,7 +46,7 @@ public class Detector {
 	 *
 	 * @return a list with fitting features
 	 */
-	public Map<FeatureConstant, ArrayList<EnumReason>> Perform()
+    public Map<FeatureReference, List<SmellReason>> Perform()
 	{
 		System.out.println("... Start detection based on the config file...");
 		
@@ -73,63 +72,63 @@ public class Detector {
 	private void filterResults()
 	{
 		// check for mandatory attributes in the detection configuration
-		ArrayList<EnumReason> mandatories = new ArrayList<EnumReason>();
+		ArrayList<SmellReason> mandatories = new ArrayList<SmellReason>();
 		
 		if (config.Feature_MeanLofcRatio_Mand)
-			mandatories.add(EnumReason.LARGEFEATURE_LOFCTOMEANLOFC);
+			mandatories.add(SmellReason.LARGEFEATURE_LOFCTOMEANLOFC);
 		if (config.Feature_ProjectLocRatio_Mand)
-			mandatories.add(EnumReason.LARGEFEATURE_LOFCTOLOC);
+			mandatories.add(SmellReason.LARGEFEATURE_LOFCTOLOC);
 		if (config.Feature_NumberLofc_Mand)
-			mandatories.add(EnumReason.LARGEFEATURE_NUMBERLOFC);
+			mandatories.add(SmellReason.LARGEFEATURE_NUMBERLOFC);
 		if (config.Feature_NumberNofc_Mand)
-			mandatories.add(EnumReason.LARGEFEATURE_NUMBERNOFC);
+			mandatories.add(SmellReason.LARGEFEATURE_NUMBERNOFC);
 		if (config.Feature_NoFeatureConstantsRatio_Mand)
-			mandatories.add(EnumReason.SHOTGUNSURGERY_NOFCOSUMNOFC);
+			mandatories.add(SmellReason.SHOTGUNSURGERY_NOFCOSUMNOFC);
 		if (config.Feature_NumberOfCompilUnits_Mand)
-			mandatories.add(EnumReason.SHOTGUNSURGERY_NUMBERCOMPILATIONUNITS);
+			mandatories.add(SmellReason.SHOTGUNSURGERY_NUMBERCOMPILATIONUNITS);
 
 		if (config.Method_LoacToLocRatio_Mand)
-			mandatories.add(EnumReason.ANNOTATIONBUNDLE_LOACTOLOC);
+			mandatories.add(SmellReason.ANNOTATIONBUNDLE_LOACTOLOC);
 		if (config.Method_LofcToLocRatio_Mand)
-			mandatories.add(EnumReason.ANNOTATIONBUNDLE_LOFCTOLOC);
+			mandatories.add(SmellReason.ANNOTATIONBUNDLE_LOFCTOLOC);
 		if (config.Method_NegationCount_Mand)
-			mandatories.add(EnumReason.ANNOTATIONBUNDLE_NUMBERNEGATIONS);
+			mandatories.add(SmellReason.ANNOTATIONBUNDLE_NUMBERNEGATIONS);
 		if (config.Method_NestingDepthMin_Mand)
-			mandatories.add(EnumReason.ANNOTATIONBUNDLE_NUMBERNESTINGDEPTHMIN);
+			mandatories.add(SmellReason.ANNOTATIONBUNDLE_NUMBERNESTINGDEPTHMIN);
 		if (config.Method_NestingSum_Mand)
-			mandatories.add(EnumReason.ANNOTATIONBUNDLE_NUMBERNESTINGSUM);
+			mandatories.add(SmellReason.ANNOTATIONBUNDLE_NUMBERNESTINGSUM);
 		if (config.Method_NumberOfFeatureConstantsNonDup_Mand)
-			mandatories.add(EnumReason.ANNOTATIONBUNDLE_NUMBERFEATURECONSTNONDUP);
+			mandatories.add(SmellReason.ANNOTATIONBUNDLE_NUMBERFEATURECONSTNONDUP);
 		if (config.Method_NumberOfFeatureConstants_Mand)
-			mandatories.add(EnumReason.ANNOTATIONBUNDLE_NUMBERFEATURECONSTANTS);
+			mandatories.add(SmellReason.ANNOTATIONBUNDLE_NUMBERFEATURECONSTANTS);
 		
 		if (config.Method_LoacToLocRatio_Mand)
-			mandatories.add(EnumReason.ANNOTATIONFILE_LOACTOLOC);
+			mandatories.add(SmellReason.ANNOTATIONFILE_LOACTOLOC);
 		if (config.File_LofcToLocRatio_Mand)
-			mandatories.add(EnumReason.ANNOTATIONFILE_LOFCTOLOC);
+			mandatories.add(SmellReason.ANNOTATIONFILE_LOFCTOLOC);
 		if (config.File_NegationCount_Mand)
-			mandatories.add(EnumReason.ANNOTATIONFILE_NUMBERNEGATIONS);
+			mandatories.add(SmellReason.ANNOTATIONFILE_NUMBERNEGATIONS);
 		if (config.File_NestingDepthMin_Mand)
-			mandatories.add(EnumReason.ANNOTATIONFILE_NUMBERNESTINGDEPTHMIN);
+			mandatories.add(SmellReason.ANNOTATIONFILE_NUMBERNESTINGDEPTHMIN);
 		if (config.File_NestingSum_Mand)
-			mandatories.add(EnumReason.ANNOTATIONFILE_NUMBERNESTINGSUM);
+			mandatories.add(SmellReason.ANNOTATIONFILE_NUMBERNESTINGSUM);
 		if (config.File_NumberOfFeatureConstantsNonDup_Mand)
-			mandatories.add(EnumReason.ANNOTATIONFILE_NUMBERFEATURECONSTNONDUP);
+			mandatories.add(SmellReason.ANNOTATIONFILE_NUMBERFEATURECONSTNONDUP);
 		if (config.File_NumberOfFeatureConstants_Mand)
-			mandatories.add(EnumReason.ANNOTATIONFILE_NUMBERFEATURECONSTANTS);
+			mandatories.add(SmellReason.ANNOTATIONFILE_NUMBERFEATURECONSTANTS);
 		
 		// delete featurelocations from the result if it does not contain a mandatory attribute
-		ArrayList<FeatureConstant> toDelete = new ArrayList<FeatureConstant>();
-		for (FeatureConstant key : featureResult.keySet())
+		ArrayList<FeatureReference> toDelete = new ArrayList<FeatureReference>();
+		for (FeatureReference key : featureResult.keySet())
 		{
-			for (EnumReason mandatory : mandatories)
+			for (SmellReason mandatory : mandatories)
 			{
 				if (!featureResult.get(key).contains(mandatory))
 					toDelete.add(key);
 			}
 		}
 		
-		for (FeatureConstant key : toDelete)
+		for (FeatureReference key : toDelete)
 			featureResult.remove(key);
 	}
 	
@@ -171,7 +170,7 @@ public class Detector {
 	 * Checks the file for suitable locations in a method.
 	 */
 	private void checkFileCollection() {
-			for (data.File file : FileCollection.Files)
+			for (de.ovgu.skunk.detection.data.File file : FileCollection.Files)
 			{
 				// sort functions
 				//Collections.sort(meth.featureLocations);
@@ -212,7 +211,7 @@ public class Detector {
 			
 			checkForFeatureLofc(feat);
 			
-			for (FeatureConstant constant : feat.getConstants())
+			for (FeatureReference constant : feat.getConstants())
 			{
 				// check for features that take up a huge part of the project loc
 				checkForFeatureToProjectRatio(feat, constant);	
@@ -242,8 +241,8 @@ public class Detector {
 			{
 				for (UUID id : meth.featureConstants.keySet())
 				{
-					FeatureConstant loc = FeatureExpressionCollection.GetFeatureConstant(meth.featureConstants.get(id), id);
-					this.addFeatureLocWithReason(loc, EnumReason.ANNOTATIONBUNDLE_LOFCTOLOC);
+					FeatureReference loc = FeatureExpressionCollection.GetFeatureConstant(meth.featureConstants.get(id), id);
+					this.addFeatureLocWithReason(loc, SmellReason.ANNOTATIONBUNDLE_LOFCTOLOC);
 				}
 			}
 		}
@@ -264,8 +263,8 @@ public class Detector {
 			{
 				for (UUID id : meth.featureConstants.keySet())
 				{
-					FeatureConstant loc = FeatureExpressionCollection.GetFeatureConstant(meth.featureConstants.get(id), id);
-					this.addFeatureLocWithReason(loc, EnumReason.ANNOTATIONBUNDLE_LOACTOLOC);
+					FeatureReference loc = FeatureExpressionCollection.GetFeatureConstant(meth.featureConstants.get(id), id);
+					this.addFeatureLocWithReason(loc, SmellReason.ANNOTATIONBUNDLE_LOACTOLOC);
 				}
 			}
 		}
@@ -283,8 +282,8 @@ public class Detector {
 			{
 				for (UUID id : meth.featureConstants.keySet())
 				{
-					FeatureConstant constant = FeatureExpressionCollection.GetFeatureConstant(meth.featureConstants.get(id), id);
-					this.addFeatureLocWithReason(constant, EnumReason.ANNOTATIONBUNDLE_NUMBERFEATURECONSTANTS);
+					FeatureReference constant = FeatureExpressionCollection.GetFeatureConstant(meth.featureConstants.get(id), id);
+					this.addFeatureLocWithReason(constant, SmellReason.ANNOTATIONBUNDLE_NUMBERFEATURECONSTANTS);
 				}
 			}
 		}
@@ -302,8 +301,8 @@ public class Detector {
 			{
 				for (UUID id : meth.featureConstants.keySet())
 				{
-					FeatureConstant constant = FeatureExpressionCollection.GetFeatureConstant(meth.featureConstants.get(id), id);
-					this.addFeatureLocWithReason(constant, EnumReason.ANNOTATIONBUNDLE_NUMBERFEATURELOC);
+					FeatureReference constant = FeatureExpressionCollection.GetFeatureConstant(meth.featureConstants.get(id), id);
+					this.addFeatureLocWithReason(constant, SmellReason.ANNOTATIONBUNDLE_NUMBERFEATURELOC);
 				}
 			}
 		}
@@ -322,8 +321,8 @@ public class Detector {
 			{
 				for (UUID id : meth.featureConstants.keySet())
 				{
-					FeatureConstant constant = FeatureExpressionCollection.GetFeatureConstant(meth.featureConstants.get(id), id);
-					this.addFeatureLocWithReason(constant, EnumReason.ANNOTATIONBUNDLE_NUMBERFEATURECONSTNONDUP);
+					FeatureReference constant = FeatureExpressionCollection.GetFeatureConstant(meth.featureConstants.get(id), id);
+					this.addFeatureLocWithReason(constant, SmellReason.ANNOTATIONBUNDLE_NUMBERFEATURECONSTNONDUP);
 				}
 			}
 		}
@@ -341,8 +340,8 @@ public class Detector {
 			if (meth.negationCount > this.config.Method_NegationCount)
 				for (UUID id : meth.featureConstants.keySet())
 				{
-					FeatureConstant constant = FeatureExpressionCollection.GetFeatureConstant(meth.featureConstants.get(id), id);
-					this.addFeatureLocWithReason(constant, EnumReason.ANNOTATIONBUNDLE_NUMBERNEGATIONS);
+					FeatureReference constant = FeatureExpressionCollection.GetFeatureConstant(meth.featureConstants.get(id), id);
+					this.addFeatureLocWithReason(constant, SmellReason.ANNOTATIONBUNDLE_NUMBERNEGATIONS);
 				}
 		}
 	}
@@ -359,8 +358,8 @@ public class Detector {
 			if (meth.nestingSum >= this.config.Method_NestingSum)
 				for (UUID id : meth.featureConstants.keySet())
 				{
-					FeatureConstant constant = FeatureExpressionCollection.GetFeatureConstant(meth.featureConstants.get(id), id);
-					this.addFeatureLocWithReason(constant, EnumReason.ANNOTATIONBUNDLE_NUMBERNESTINGSUM);
+					FeatureReference constant = FeatureExpressionCollection.GetFeatureConstant(meth.featureConstants.get(id), id);
+					this.addFeatureLocWithReason(constant, SmellReason.ANNOTATIONBUNDLE_NUMBERNESTINGSUM);
 				}
 		}
 	}
@@ -375,12 +374,12 @@ public class Detector {
 		if (this.config.Method_NestingDepthMin != -1)
 		{
 				// check nesting via stacks and nesting depth
-				Stack<FeatureConstant> nestingStack = new Stack<FeatureConstant>();		
+				Stack<FeatureReference> nestingStack = new Stack<FeatureReference>();		
 				int beginNesting = -1;
 				
 				for (UUID id : meth.featureConstants.keySet())
 				{
-					FeatureConstant constant = FeatureExpressionCollection.GetFeatureConstant(meth.featureConstants.get(id), id);
+					FeatureReference constant = FeatureExpressionCollection.GetFeatureConstant(meth.featureConstants.get(id), id);
 					
 					// add the item instantly if the stack is empty, set the beginning nesting depth to the nd of the loc (nesting depth is file-based not method based)
 					if (nestingStack.isEmpty())
@@ -400,7 +399,7 @@ public class Detector {
 						{
 							// calculate nestingdepth of bundle
 							int ndm = -1;
-							for (FeatureConstant current : nestingStack)
+							for (FeatureReference current : nestingStack)
 								if ((current.nestingDepth - beginNesting) > ndm)
 									ndm = current.nestingDepth - beginNesting;
 							
@@ -408,7 +407,7 @@ public class Detector {
 							if (ndm >= config.Method_NestingDepthMin)
 							{
 								while (!nestingStack.isEmpty())
-									this.addFeatureLocWithReason(nestingStack.pop(), EnumReason.ANNOTATIONBUNDLE_NUMBERNESTINGDEPTHMIN);
+									this.addFeatureLocWithReason(nestingStack.pop(), SmellReason.ANNOTATIONBUNDLE_NUMBERNESTINGDEPTHMIN);
 							}
 							else
 								nestingStack.empty();
@@ -421,14 +420,14 @@ public class Detector {
 				{
 					// calculate nestingdepth of bundle
 					int ndm = -1;
-					for (FeatureConstant current : nestingStack)
+					for (FeatureReference current : nestingStack)
 						if ((current.nestingDepth - beginNesting) > ndm)
 							ndm = current.nestingDepth - beginNesting;
 					
 					if (ndm >= config.Method_NestingDepthMin)
 					{
 						while (!nestingStack.isEmpty())
-							this.addFeatureLocWithReason(nestingStack.pop(), EnumReason.ANNOTATIONBUNDLE_NUMBERNESTINGDEPTHMIN);
+							this.addFeatureLocWithReason(nestingStack.pop(), SmellReason.ANNOTATIONBUNDLE_NUMBERNESTINGDEPTHMIN);
 					}
 					else
 						nestingStack.empty();
@@ -446,7 +445,7 @@ public class Detector {
 	 *
 	 * @param meth the method
 	 */
-	private void checkForFileLofcToLoc(data.File file) {
+	private void checkForFileLofcToLoc(de.ovgu.skunk.detection.data.File file) {
 		if (this.config.File_LofcToLocRatio != -1000)
 		{
 			double minLofc = (this.config.File_LofcToLocRatio * file.loc);
@@ -455,8 +454,8 @@ public class Detector {
 			{
 				for (UUID id : file.featureConstants.keySet())
 				{
-					FeatureConstant loc = FeatureExpressionCollection.GetFeatureConstant(file.featureConstants.get(id), id);
-					this.addFeatureLocWithReason(loc, EnumReason.ANNOTATIONFILE_LOFCTOLOC);
+					FeatureReference loc = FeatureExpressionCollection.GetFeatureConstant(file.featureConstants.get(id), id);
+					this.addFeatureLocWithReason(loc, SmellReason.ANNOTATIONFILE_LOFCTOLOC);
 				}
 			}
 		}
@@ -468,7 +467,7 @@ public class Detector {
 	 *
 	 * @param meth the method
 	 */
-	private void checkForFileLoacToLoc(data.File file) {
+	private void checkForFileLoacToLoc(de.ovgu.skunk.detection.data.File file) {
 		if (this.config.File_LoacToLocRatio != -1000)
 		{
 			double minLoac = (this.config.File_LoacToLocRatio * file.loc);
@@ -477,8 +476,8 @@ public class Detector {
 			{
 				for (UUID id : file.featureConstants.keySet())
 				{
-					FeatureConstant loc = FeatureExpressionCollection.GetFeatureConstant(file.featureConstants.get(id), id);
-					this.addFeatureLocWithReason(loc, EnumReason.ANNOTATIONFILE_LOACTOLOC);
+					FeatureReference loc = FeatureExpressionCollection.GetFeatureConstant(file.featureConstants.get(id), id);
+					this.addFeatureLocWithReason(loc, SmellReason.ANNOTATIONFILE_LOACTOLOC);
 				}
 			}
 		}
@@ -489,15 +488,15 @@ public class Detector {
 	 * Add all feature locs to the result with the Number of Feature Constants reason
 	 * @param meth the meth
 	 */
-	private void checkFileForNumberOfFeatureConstants(data.File file) {
+	private void checkFileForNumberOfFeatureConstants(de.ovgu.skunk.detection.data.File file) {
 		if (this.config.File_NumberOfFeatureConstants != -1)
 		{
 			if (file.GetFeatureConstantCount() > this.config.File_NumberOfFeatureConstants)
 			{
 				for (UUID id : file.featureConstants.keySet())
 				{
-					FeatureConstant constant = FeatureExpressionCollection.GetFeatureConstant(file.featureConstants.get(id), id);
-					this.addFeatureLocWithReason(constant, EnumReason.ANNOTATIONFILE_NUMBERFEATURECONSTANTS);
+					FeatureReference constant = FeatureExpressionCollection.GetFeatureConstant(file.featureConstants.get(id), id);
+					this.addFeatureLocWithReason(constant, SmellReason.ANNOTATIONFILE_NUMBERFEATURECONSTANTS);
 				}
 			}
 		}
@@ -508,15 +507,15 @@ public class Detector {
 	 * Add all feature constans to the result with the Number of Feature Locations reason
 	 * @param meth the meth
 	 */
-	private void checkFileForNumberOfFeatureLocations(data.File file) {
+	private void checkFileForNumberOfFeatureLocations(de.ovgu.skunk.detection.data.File file) {
 		if (this.config.File_NumberOfFeatureLocations != -1)
 		{
 			if (file.GetFeatureConstantCount() > this.config.File_NumberOfFeatureLocations)
 			{
 				for (UUID id : file.featureConstants.keySet())
 				{
-					FeatureConstant constant = FeatureExpressionCollection.GetFeatureConstant(file.featureConstants.get(id), id);
-					this.addFeatureLocWithReason(constant, EnumReason.ANNOTATIONFILE_NUMBERFEATURELOC);
+					FeatureReference constant = FeatureExpressionCollection.GetFeatureConstant(file.featureConstants.get(id), id);
+					this.addFeatureLocWithReason(constant, SmellReason.ANNOTATIONFILE_NUMBERFEATURELOC);
 				}
 			}
 		}
@@ -528,15 +527,15 @@ public class Detector {
 	 *
 	 * @param meth the meth
 	 */
-	private void checkFileForNumberFeatureConstantsNonDup(data.File file) {
+	private void checkFileForNumberFeatureConstantsNonDup(de.ovgu.skunk.detection.data.File file) {
 		if (this.config.File_NumberOfFeatureConstantsNonDup != -1)
 		{
 			if (file.numberFeatureConstantsNonDup > this.config.File_NumberOfFeatureConstantsNonDup)
 			{
 				for (UUID id : file.featureConstants.keySet())
 				{
-					FeatureConstant constant = FeatureExpressionCollection.GetFeatureConstant(file.featureConstants.get(id), id);
-					this.addFeatureLocWithReason(constant, EnumReason.ANNOTATIONFILE_NUMBERFEATURECONSTNONDUP);
+					FeatureReference constant = FeatureExpressionCollection.GetFeatureConstant(file.featureConstants.get(id), id);
+					this.addFeatureLocWithReason(constant, SmellReason.ANNOTATIONFILE_NUMBERFEATURECONSTNONDUP);
 				}
 			}
 		}
@@ -548,14 +547,14 @@ public class Detector {
 	 *
 	 * @param meth the method
 	 */
-	private void checkFileForNumberNegations(data.File file) {
+	private void checkFileForNumberNegations(de.ovgu.skunk.detection.data.File file) {
 		if (this.config.File_NegationCount != -1)
 		{
 			if (file.negationCount > this.config.File_NegationCount)
 				for (UUID id : file.featureConstants.keySet())
 				{
-					FeatureConstant constant = FeatureExpressionCollection.GetFeatureConstant(file.featureConstants.get(id), id);
-					this.addFeatureLocWithReason(constant, EnumReason.ANNOTATIONFILE_NUMBERNEGATIONS);
+					FeatureReference constant = FeatureExpressionCollection.GetFeatureConstant(file.featureConstants.get(id), id);
+					this.addFeatureLocWithReason(constant, SmellReason.ANNOTATIONFILE_NUMBERNEGATIONS);
 				}
 		}
 	}
@@ -566,14 +565,14 @@ public class Detector {
 	 *
 	 * @param meth the method
 	 */
-	private void checkForFileNestingSum(data.File file) {
+	private void checkForFileNestingSum(de.ovgu.skunk.detection.data.File file) {
 		if (this.config.File_NestingSum != -1)
 		{
 			if (file.nestingSum >= this.config.File_NestingSum)
 				for (UUID id : file.featureConstants.keySet())
 				{
-					FeatureConstant constant = FeatureExpressionCollection.GetFeatureConstant(file.featureConstants.get(id), id);
-					this.addFeatureLocWithReason(constant, EnumReason.ANNOTATIONFILE_NUMBERNESTINGSUM);
+					FeatureReference constant = FeatureExpressionCollection.GetFeatureConstant(file.featureConstants.get(id), id);
+					this.addFeatureLocWithReason(constant, SmellReason.ANNOTATIONFILE_NUMBERNESTINGSUM);
 				}
 		}
 	}
@@ -584,16 +583,16 @@ public class Detector {
 	 *
 	 * @param meth the method
 	 */
-	private void checkForFileNestingDepthMax(data.File file) {
+	private void checkForFileNestingDepthMax(de.ovgu.skunk.detection.data.File file) {
 		if (this.config.File_NestingDepthMin != -1)
 		{
 				// check nesting via stacks and nesting depth
-				Stack<FeatureConstant> nestingStack = new Stack<FeatureConstant>();		
+				Stack<FeatureReference> nestingStack = new Stack<FeatureReference>();		
 				int beginNesting = -1;
 				
 				for (UUID id : file.featureConstants.keySet())
 				{
-					FeatureConstant constant = FeatureExpressionCollection.GetFeatureConstant(file.featureConstants.get(id), id);
+					FeatureReference constant = FeatureExpressionCollection.GetFeatureConstant(file.featureConstants.get(id), id);
 					
 					// add the item instantly if the stack is empty, set the beginning nesting depth to the nd of the loc (nesting depth is file-based not method based)
 					if (nestingStack.isEmpty())
@@ -613,7 +612,7 @@ public class Detector {
 						{
 							// calculate nestingdepth of bundle
 							int ndm = -1;
-							for (FeatureConstant current : nestingStack)
+							for (FeatureReference current : nestingStack)
 								if ((current.nestingDepth - beginNesting) > ndm)
 									ndm = current.nestingDepth - beginNesting;
 							
@@ -621,7 +620,7 @@ public class Detector {
 							if (ndm >= config.File_NestingDepthMin)
 							{
 								while (!nestingStack.isEmpty())
-									this.addFeatureLocWithReason(nestingStack.pop(), EnumReason.ANNOTATIONFILE_NUMBERNESTINGDEPTHMIN);
+									this.addFeatureLocWithReason(nestingStack.pop(), SmellReason.ANNOTATIONFILE_NUMBERNESTINGDEPTHMIN);
 							}
 							else
 								nestingStack.empty();
@@ -634,14 +633,14 @@ public class Detector {
 				{
 					// calculate nestingdepth of bundle
 					int ndm = -1;
-					for (FeatureConstant current : nestingStack)
+					for (FeatureReference current : nestingStack)
 						if ((current.nestingDepth - beginNesting) > ndm)
 							ndm = current.nestingDepth - beginNesting;
 					
 					if (ndm >= config.File_NestingDepthMin)
 					{
 						while (!nestingStack.isEmpty())
-							this.addFeatureLocWithReason(nestingStack.pop(), EnumReason.ANNOTATIONFILE_NUMBERNESTINGDEPTHMIN);
+							this.addFeatureLocWithReason(nestingStack.pop(), SmellReason.ANNOTATIONFILE_NUMBERNESTINGDEPTHMIN);
 					}
 					else
 						nestingStack.empty();
@@ -657,7 +656,7 @@ public class Detector {
 	 *
 	 * @param loc the feature constant to examine
 	 */
-	private void checkForFeatureToFeatureRatio(FeatureConstant loc)
+	private void checkForFeatureToFeatureRatio(FeatureReference loc)
 	{
 		// if the value is not set, it is -1000
 		if (this.config.Feature_MeanLofcRatio != -1000)
@@ -668,7 +667,7 @@ public class Detector {
 			
 			// add the feature location if the feature lofc is bigger than the minimal
 			if (lofc >= minLofc)
-				this.addFeatureLocWithReason(loc, EnumReason.LARGEFEATURE_LOFCTOMEANLOFC);
+				this.addFeatureLocWithReason(loc, SmellReason.LARGEFEATURE_LOFCTOMEANLOFC);
 		}
 	}
 
@@ -679,7 +678,7 @@ public class Detector {
 	 * @param feat the feature
 	 * @param loc the current location
 	 */
-	private void checkForFeatureToProjectRatio(Feature feat, FeatureConstant loc) 
+	private void checkForFeatureToProjectRatio(Feature feat, FeatureReference loc) 
 	{
 		// value is set if it is not -1000
 		if (this.config.Feature_ProjectLocRatio != -1000)
@@ -689,7 +688,7 @@ public class Detector {
 			
 			// add the feature location
 			if (feat.getLofc() >= minLofc)
-				this.addFeatureLocWithReason(loc, EnumReason.LARGEFEATURE_LOFCTOLOC);
+				this.addFeatureLocWithReason(loc, SmellReason.LARGEFEATURE_LOFCTOLOC);
 		}
 	}
 	
@@ -704,12 +703,12 @@ public class Detector {
 		if (this.config.Feature_NoFeatureConstantsRatio != -1000)
 		{
 			// amount of nofls the feature has to exceed for a smell
-			double minNofl = FeatureExpressionCollection.numberOfFeatureConstants * this.config.Feature_NoFeatureConstantsRatio;
+			double minNofl = FeatureExpressionCollection.numberOfFeatureConstantReferences * this.config.Feature_NoFeatureConstantsRatio;
 			
 			if (feat.getConstants().size() > minNofl)
 			{
-				for(FeatureConstant loc : feat.getConstants())
-					this.addFeatureLocWithReason(loc, EnumReason.SHOTGUNSURGERY_NOFCOSUMNOFC);
+				for(FeatureReference loc : feat.getConstants())
+					this.addFeatureLocWithReason(loc, SmellReason.SHOTGUNSURGERY_NOFCOSUMNOFC);
 			}
 		}
 	}
@@ -726,8 +725,8 @@ public class Detector {
 		{
 			if (feat.GetAmountCompilationFiles() > this.config.Feature_NumberOfCompilUnits)
 			{
-				for(FeatureConstant loc : feat.getConstants())
-					this.addFeatureLocWithReason(loc, EnumReason.SHOTGUNSURGERY_NUMBERCOMPILATIONUNITS);
+				for(FeatureReference loc : feat.getConstants())
+					this.addFeatureLocWithReason(loc, SmellReason.SHOTGUNSURGERY_NUMBERCOMPILATIONUNITS);
 			}
 		}
 	}
@@ -743,8 +742,8 @@ public class Detector {
 		{
 			if (feat.getLofc() > this.config.Feature_NumberLofc)
 			{
-				for(FeatureConstant loc : feat.getConstants())
-					this.addFeatureLocWithReason(loc, EnumReason.LARGEFEATURE_NUMBERLOFC);
+				for(FeatureReference loc : feat.getConstants())
+					this.addFeatureLocWithReason(loc, SmellReason.LARGEFEATURE_NUMBERLOFC);
 			}
 		}
 	}
@@ -760,8 +759,8 @@ public class Detector {
 		{
 			if (feat.constants.size() > this.config.Feature_NumberNofc)
 			{
-				for(FeatureConstant loc : feat.getConstants())
-					this.addFeatureLocWithReason(loc, EnumReason.LARGEFEATURE_NUMBERNOFC);
+				for(FeatureReference loc : feat.getConstants())
+					this.addFeatureLocWithReason(loc, SmellReason.LARGEFEATURE_NUMBERNOFC);
 			}
 		}
 	}
@@ -772,13 +771,13 @@ public class Detector {
 	 * @param constant the feature constant to add
 	 * @param reason the reason
 	 */
-	private void addFeatureLocWithReason(FeatureConstant constant, EnumReason reason)
+	private void addFeatureLocWithReason(FeatureReference constant, SmellReason reason)
 	{
 		if (this.featureResult.containsKey(constant))
 			this.featureResult.get(constant).add(reason);
 		else
 		{
-			ArrayList<EnumReason> enumReason = new ArrayList<EnumReason>();
+            List<SmellReason> enumReason = new ArrayList<SmellReason>();
 			enumReason.add(reason);
 			this.featureResult.put(constant, enumReason);
 		}
@@ -795,7 +794,7 @@ public class Detector {
   	 * @param map the map
   	 * @return the linked hash map
   	 */
-  	public <K extends Comparable,V extends Comparable> LinkedHashMap<K,V> sortByValues(Map<K,V> map)
+	public <K extends Comparable<K>, V extends Comparable<V>> LinkedHashMap<K, V> sortByValues(Map<K, V> map)
   	{
 	        List<Map.Entry<K,V>> entries = new LinkedList<Map.Entry<K,V>>(map.entrySet());
 	      
@@ -809,7 +808,7 @@ public class Detector {
 	        
 	        //LinkedHashMap will keep the keys in the order they are inserted
 	        //which is currently sorted on natural ordering
-	        LinkedHashMap<K,V> sortedMap = new LinkedHashMap<K,V>();
+		LinkedHashMap<K, V> sortedMap = new LinkedHashMap<K, V>();
 	      
 	        for(Map.Entry<K,V> entry: entries){
 	            sortedMap.put(entry.getKey(), entry.getValue());

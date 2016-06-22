@@ -1,4 +1,4 @@
-package input;
+package de.ovgu.skunk.detection.input;
 
 import java.io.File;
 import java.io.IOException;
@@ -9,8 +9,8 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 
-import data.FeatureExpressionCollection;
-import data.FileCollection;
+import de.ovgu.skunk.detection.data.FeatureExpressionCollection;
+import de.ovgu.skunk.detection.data.FileCollection;
 
 /**
  * The Class CppStatsFolderReader for reading and processing csv files.
@@ -35,45 +35,22 @@ public class CppStatsFolderReader {
 	 */
 	public void ProcessFiles()
 	{
-		System.out.println("Processing CppStats CSV files in folder " + _cppStatsFolder + " ...");
+        String dirName;
+        try {
+            dirName = new File(_cppStatsFolder).getCanonicalPath();
+        } catch (IOException e) {
+            throw new RuntimeException("I/O error while processing cppstats files in directory " + _cppStatsFolder, e);
+        }
+
+        System.out.println("Processing CppStats CSV files in folder " + dirName + " ...");
 		
 		//this.getFeatureNames(new File(this._cppStatsFolder + "/merged_scattering_degrees.csv"));
 		this.getFeatureConstants(new File(this._cppStatsFolder + "/cppstats_featurelocations.csv"));
 		this.getLOCProject(new File(this._cppStatsFolder + "/cppstats.csv"));
 		
-		System.out.println("... CppStats processing done!");
+        System.out.println("... CppStats processing done.");
 	}
 	
-//	/**
-//	 * Gather features from file "merged_scattering_degrees.csv"
-//	 */
-//	private void getFeatureNames(File csvFile)
-//	{
-//		System.out.print("... getting feature names ...");
-//
-//		// Parse CSV and get all feature expressions from the project
-//		try 
-//		{
-//			CSVParser parser = CSVParser.parse(csvFile, Charset.defaultCharset(), CSVFormat.DEFAULT);
-//			for (CSVRecord rec : parser)
-//			{
-//				String featureName = rec.get(0);
-//				
-//				// first two lines are no features
-//				if ((!featureName.equals("sep=,")) && (!featureName.equals("define")))
-//				{
-//					FeatureExpressionCollection.AddFeature(new Feature(featureName));
-//				}
-//			}
-//			
-//		} catch (IOException e) {
-//		
-//			e.printStackTrace();
-//		}
-//		
-//		System.out.println(" complete! ");		
-//	}
-
 	/**
 	 * Get feature constants and lofc from file "cppstats_featurelocations.csv"
 	 *
@@ -133,7 +110,8 @@ public class CppStatsFolderReader {
 						}
 						else
 						{
-							// save feature constant if the endline of the top element is lower as the curent start location
+                            // save feature constant if the endline of the top
+                            // element is lower than the curent start location
 							while ((constants.size() > 0) && (constants.peek().end <= start))
 								constants.pop().SaveFeatureConstantInformation(constants.size() + 1);
 							
@@ -166,7 +144,7 @@ public class CppStatsFolderReader {
 		
 		FeatureExpressionCollection.PostAction();
 		
-		System.out.println(" complete!");
+        System.out.println(" done.");
 	}
 	
 	/**
@@ -197,7 +175,7 @@ public class CppStatsFolderReader {
 					e);
 		}
 		
-		System.out.println(" complete!");	
+        System.out.println(" done.");
 	}
 	
 }

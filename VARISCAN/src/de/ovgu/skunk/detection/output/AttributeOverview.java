@@ -1,15 +1,15 @@
-package output;
+package de.ovgu.skunk.detection.output;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import data.FeatureExpressionCollection;
-import data.FeatureConstant;
-import detection.EnumReason;
+import de.ovgu.skunk.detection.data.FeatureExpressionCollection;
+import de.ovgu.skunk.detection.data.FeatureReference;
+import de.ovgu.skunk.detection.detector.SmellReason;
 
 public class AttributeOverview {
 
-	public EnumReason Reason = null;
+	public SmellReason Reason = null;
 	private ArrayList<String> featureConstants = null;
 	private int noFeatureLocs = 0;
 	private int lofc = 0;
@@ -20,7 +20,7 @@ public class AttributeOverview {
 	 *
 	 * @param reason the reason
 	 */
-	public AttributeOverview(EnumReason reason)
+	public AttributeOverview(SmellReason reason)
 	{
 		this.Reason = reason;
 		this.loacs = new HashMap<String, ArrayList<Integer>>();
@@ -32,15 +32,15 @@ public class AttributeOverview {
 	 *
 	 * @param constant the loc
 	 */
-	public void AddFeatureLocationInfo(FeatureConstant constant)
+	public void AddFeatureLocationInfo(FeatureReference constant)
 	{
 		// add metrics
 		this.noFeatureLocs++;
 		this.lofc = constant.end - constant.start;
 		
 		// add feature constant if not already part of it
-		if (!this.featureConstants.contains(constant.corresponding.Name))
-			this.featureConstants.add(constant.corresponding.Name);
+		if (!this.featureConstants.contains(constant.feature.Name))
+			this.featureConstants.add(constant.feature.Name);
 		
 		// add all lines per file to the data structure, that are part of the feature constant... no doubling for loac calculation
 		if (!loacs.keySet().contains(constant.filePath))
@@ -62,13 +62,13 @@ public class AttributeOverview {
 		
 		// calculate percentages
 		float percentOfLoc = completeLoac * 100 / FeatureExpressionCollection.GetLoc();
-		float percentOfLocations = this.noFeatureLocs * 100 / FeatureExpressionCollection.numberOfFeatureConstants;
+		float percentOfLocations = this.noFeatureLocs * 100 / FeatureExpressionCollection.numberOfFeatureConstantReferences;
 		float percentOfConstants = this.featureConstants.size() * 100 / FeatureExpressionCollection.GetFeatures().size();
 		
 		// Complete overview
 		String res = ">>> Overview "+ Reason +"\r\n";
 		res += "Number of features: \t" + this.featureConstants.size() + " (" + percentOfConstants + "% of " + FeatureExpressionCollection.GetFeatures().size() + " constants)\r\n";
-		res += "Number of feature constants: \t" + this.noFeatureLocs  + " (" + percentOfLocations + "% of " + FeatureExpressionCollection.numberOfFeatureConstants + " locations)\r\n";
+		res += "Number of feature constants: \t" + this.noFeatureLocs  + " (" + percentOfLocations + "% of " + FeatureExpressionCollection.numberOfFeatureConstantReferences + " locations)\r\n";
 		res += "Lines of annotated Code: \t" + completeLoac + " (" + percentOfLoc + "% of " + FeatureExpressionCollection.GetLoc() + " LOC)\r\n";
 		res += "Lines of feature code: \t\t" + this.lofc + "\r\n\r\n";
 		

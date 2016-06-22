@@ -1,10 +1,7 @@
-package data;
+package de.ovgu.skunk.detection.data;
 
-import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -86,12 +83,12 @@ public class Method
 	 *
 	 * @param constant the loc
 	 */
-	public void AddFeatureConstant(FeatureConstant constant)
+	public void AddFeatureConstant(FeatureReference constant)
 	{
 		if (!this.featureConstants.containsKey(constant.id))
 		{
 			// connect feature to the method
-			this.featureConstants.put(constant.id, constant.corresponding.Name);
+			this.featureConstants.put(constant.id, constant.feature.Name);
 			constant.inMethod = this;
 			
 			// assign nesting depth values
@@ -105,7 +102,7 @@ public class Method
 			else
 				this.lofc += constant.end - constant.start + 1;
 			
-			data.File file = FileCollection.GetFile((constant.filePath));
+			de.ovgu.skunk.detection.data.File file = FileCollection.GetFile((constant.filePath));
 			for (int current : file.emptyLines)
 			{
 				if (constant.end > this.end)
@@ -161,9 +158,9 @@ public class Method
 		
 		for (UUID id : featureConstants.keySet())
 		{
-			FeatureConstant constant = FeatureExpressionCollection.GetFeatureConstant(featureConstants.get(id), id);
-			if (!constants.contains(constant.corresponding.Name))
-				constants.add(constant.corresponding.Name);
+			FeatureReference constant = FeatureExpressionCollection.GetFeatureConstant(featureConstants.get(id), id);
+			if (!constants.contains(constant.feature.Name))
+				constants.add(constant.feature.Name);
 		}
 		
 		this.numberFeatureConstantsNonDup = constants.size();
@@ -182,7 +179,7 @@ public class Method
 		// remember the starting position of each feature location, but do not add it twice
 		for (UUID id : featureConstants.keySet())
 		{
-			FeatureConstant constant = FeatureExpressionCollection.GetFeatureConstant(featureConstants.get(id), id);
+			FeatureReference constant = FeatureExpressionCollection.GetFeatureConstant(featureConstants.get(id), id);
 			if (!noLocs.contains(constant.start))
 				noLocs.add(constant.start);
 		}
@@ -203,7 +200,7 @@ public class Method
 		
 		for (UUID id : featureConstants.keySet())
 		{
-			FeatureConstant constant = FeatureExpressionCollection.GetFeatureConstant(featureConstants.get(id), id);
+			FeatureReference constant = FeatureExpressionCollection.GetFeatureConstant(featureConstants.get(id), id);
 			if (constant.notFlag)
 				result++;
 		}
@@ -223,7 +220,7 @@ public class Method
 		// add each nesting to the nesting sum
 		for (UUID id : featureConstants.keySet())
 		{
-			FeatureConstant constant = FeatureExpressionCollection.GetFeatureConstant(featureConstants.get(id), id);
+			FeatureReference constant = FeatureExpressionCollection.GetFeatureConstant(featureConstants.get(id), id);
 			res += constant.nestingDepth;
 			if (constant.nestingDepth < minNesting)
 				minNesting = constant.nestingDepth;
@@ -237,7 +234,7 @@ public class Method
 	
 	public void SetLoc()
 	{
-		data.File file = FileCollection.GetFile(this.filePath);
+		de.ovgu.skunk.detection.data.File file = FileCollection.GetFile(this.filePath);
 		
 		for (int empty : file.emptyLines)
 		{

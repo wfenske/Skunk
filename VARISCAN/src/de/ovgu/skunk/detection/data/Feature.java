@@ -1,10 +1,9 @@
-package data;
+package de.ovgu.skunk.detection.data;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -19,7 +18,7 @@ public class Feature implements Comparable<Feature>{
 	private int _lofc;
 	
 	/** The feature constants that are part of the feature*/
-	public HashMap<UUID, FeatureConstant> constants;
+    public Map<UUID, FeatureReference> constants;
 	
 	/** nesting Depth informations */
 	public int minNestingDepth;
@@ -30,7 +29,7 @@ public class Feature implements Comparable<Feature>{
 	public EnumGranularity minGranularity = EnumGranularity.NOTDEFINED;
 	
 	/* scattering information */
-	public ArrayList<String> compilationFiles;
+    public List<String> compilationFiles;
 	
 	/**
 	 * Gets the lines of code.
@@ -47,10 +46,9 @@ public class Feature implements Comparable<Feature>{
 	 *
 	 * @return the locs
 	 */
-	public List<FeatureConstant> getConstants()
+    public List<FeatureReference> getConstants()
 	{
-		List<FeatureConstant> locs = new LinkedList(this.constants.values());
-		return locs;
+        return new ArrayList<>(this.constants.values());
 	}
 	
 	/**
@@ -61,7 +59,7 @@ public class Feature implements Comparable<Feature>{
 	public Feature(String name)
 	{
 		this.Name = name;
-		this.constants = new HashMap<UUID, FeatureConstant>();
+        this.constants = new HashMap<UUID, FeatureReference>();
 		this.compilationFiles = new ArrayList<String>();
 		
 		this.maxNestingDepth = -1;
@@ -69,41 +67,41 @@ public class Feature implements Comparable<Feature>{
 	}
 
 	/**
-	 * Adds the feature constant and increases lines of feature code.
-	 *
-	 * @param loc the loc
-	 */
-	public void AddFeatureLocation(FeatureConstant loc)
+     * Adds the feature constant and increases lines of feature code.
+     *
+     * @param ref
+     *            the loc
+     */
+    public void AddReference(FeatureReference ref)
 	{
 		// connect constant with this feature (both directions)
-		loc.corresponding = this;
+        ref.feature = this;
 		
 		// set loc for the feature
-		this.constants.put(loc.id, loc);
-		this._lofc += loc.end - loc.start + 1;
+        this.constants.put(ref.id, ref);
+        this._lofc += ref.end - ref.start + 1;
 		
-		data.File file = FileCollection.GetFile((loc.filePath));
+        de.ovgu.skunk.detection.data.File file = FileCollection.GetFile((ref.filePath));
 		for (int current : file.emptyLines)
-			if (current > loc.start && current < loc.end)
+            if (current > ref.start && current < ref.end)
 				this._lofc--;
 		
 		// assign nesting depth
 		if (this.minNestingDepth == -1)
-			this.minNestingDepth = loc.nestingDepth;
+            this.minNestingDepth = ref.nestingDepth;
 		if (this.maxNestingDepth == -1)
-			this.maxNestingDepth = loc.nestingDepth;
+            this.maxNestingDepth = ref.nestingDepth;
 		
-		if (this.maxNestingDepth < loc.nestingDepth)
-			this.maxNestingDepth = loc.nestingDepth;
-		if (this.minNestingDepth > loc.nestingDepth)
-			this.minNestingDepth = loc.nestingDepth;
+        if (this.maxNestingDepth < ref.nestingDepth)
+            this.maxNestingDepth = ref.nestingDepth;
+        if (this.minNestingDepth > ref.nestingDepth)
+            this.minNestingDepth = ref.nestingDepth;
 		
 		// add cu if not already in the list
-		if (!this.compilationFiles.contains(loc.filePath))
-			this.compilationFiles.add(loc.filePath);
+        if (!this.compilationFiles.contains(ref.filePath))
+            this.compilationFiles.add(ref.filePath);
 		
-		// count loc in feature collection
-		FeatureExpressionCollection.numberOfFeatureConstants++;
+		FeatureExpressionCollection.numberOfFeatureConstantReferences++;
 	}
 
 	/**

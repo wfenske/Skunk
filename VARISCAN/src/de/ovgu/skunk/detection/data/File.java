@@ -1,4 +1,4 @@
-package data;
+package de.ovgu.skunk.detection.data;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -82,10 +82,11 @@ public class File
 	 */
 	private void getEmptyLines(String filePath)
 	{
+	    java.io.File file = FileUtils.getFile(filePath);
 		try {
 			int index = 0;
 			boolean multiline = false;
-			for (String line : FileUtils.readLines(FileUtils.getFile(filePath)))
+            for (String line : FileUtils.readLines(file))
 			{	
 				
 				// TODO Gucken ob hier ein caller auf ne methode ist --> hashmap speichern
@@ -120,7 +121,13 @@ public class File
 				index++;
 			}
 		} catch (IOException e) {
-			e.printStackTrace();
+            String pathForErrorMsg;
+            try {
+                pathForErrorMsg = file.getCanonicalPath();
+            } catch (IOException e1) {
+                pathForErrorMsg = file.getAbsolutePath();
+            }
+            throw new RuntimeException("Error reading file " + pathForErrorMsg, e);
 		}
 		
 	}
@@ -130,12 +137,12 @@ public class File
 	 *
 	 * @param constant the feature constant
 	 */
-	public void AddFeatureConstant(FeatureConstant constant)
+	public void AddFeatureConstant(FeatureReference constant)
 	{
 		if (!this.featureConstants.containsKey(constant.id))
 		{
 			// connect feature to the method
-			this.featureConstants.put(constant.id, constant.corresponding.Name);
+			this.featureConstants.put(constant.id, constant.feature.Name);
 			
 			// assign nesting depth values
 			if (constant.nestingDepth > this.nestingDepthMax)
@@ -199,9 +206,9 @@ public class File
 		
 		for (UUID id : featureConstants.keySet())
 		{
-			FeatureConstant constant = FeatureExpressionCollection.GetFeatureConstant(featureConstants.get(id), id);
-			if (!constants.contains(constant.corresponding.Name))
-				constants.add(constant.corresponding.Name);
+			FeatureReference constant = FeatureExpressionCollection.GetFeatureConstant(featureConstants.get(id), id);
+			if (!constants.contains(constant.feature.Name))
+				constants.add(constant.feature.Name);
 		}
 		
 		this.processedLoac = this.loac.size();
@@ -220,7 +227,7 @@ public class File
 		// remember the starting position of each feature constant, but do not add it twice
 		for (UUID id : featureConstants.keySet())
 		{
-			FeatureConstant constant = FeatureExpressionCollection.GetFeatureConstant(featureConstants.get(id), id);
+			FeatureReference constant = FeatureExpressionCollection.GetFeatureConstant(featureConstants.get(id), id);
 			if (!noLoc.contains(constant.start))
 				noLoc.add(constant.start);
 		}
@@ -240,7 +247,7 @@ public class File
 		
 		for (UUID id : featureConstants.keySet())
 		{
-			FeatureConstant constant = FeatureExpressionCollection.GetFeatureConstant(featureConstants.get(id), id);
+			FeatureReference constant = FeatureExpressionCollection.GetFeatureConstant(featureConstants.get(id), id);
 			if (constant.notFlag)
 				result++;
 		}
@@ -259,7 +266,7 @@ public class File
 		// add each nesting to the nesting sum
 		for (UUID id : featureConstants.keySet())
 		{
-			FeatureConstant constant = FeatureExpressionCollection.GetFeatureConstant(featureConstants.get(id), id);
+			FeatureReference constant = FeatureExpressionCollection.GetFeatureConstant(featureConstants.get(id), id);
 			res += constant.nestingDepth;
 		}
 		

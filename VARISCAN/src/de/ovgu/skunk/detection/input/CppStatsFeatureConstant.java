@@ -1,12 +1,13 @@
-package input;
+package de.ovgu.skunk.detection.input;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import data.FeatureExpressionCollection;
-import data.FeatureConstant;
+import de.ovgu.skunk.detection.data.FeatureExpressionCollection;
+import de.ovgu.skunk.detection.data.FeatureReference;
 
 /**
  * The Class CppStatsFeatureConstant.
@@ -64,22 +65,23 @@ public class CppStatsFeatureConstant
 		// stackSize 1 means nesting depth of 0;
 		stackSize--;
 		
-		List<FeatureConstant> create = new LinkedList<FeatureConstant>();
+        List<FeatureReference> references = new ArrayList<>();
 		
 		// search for the corresponding feature expression and save information
-		for (String feature : this.featureExpressions)
+		for (String featureName : this.featureExpressions)
 		{
 			// end-1 = #endif does not belong to lines of code????
-			FeatureConstant constant = new FeatureConstant(this.filePath, this.start, this.end, stackSize, this.notFlags.get(this.featureExpressions.indexOf(feature)));
-			FeatureExpressionCollection.GetFeature(feature).AddFeatureLocation(constant);
+            FeatureReference ref = new FeatureReference(this.filePath, this.start, this.end, stackSize,
+                    this.notFlags.get(this.featureExpressions.indexOf(featureName)));
+            FeatureExpressionCollection.InternFeature(featureName).AddReference(ref);
 			
 			// remember created locations for combinations
-			create.add(constant);
+            references.add(ref);
 		}
 		
 		// set combined feature constants
-		for (FeatureConstant current : create)
-			for (FeatureConstant other : create)
+        for (FeatureReference current : references)
+            for (FeatureReference other : references)
 			{
 				if (other != current)
 					current.combinedWith.add(other.id);
@@ -95,9 +97,10 @@ public class CppStatsFeatureConstant
 	private void getFeaturesFromEntry(String entry)
 	{
 		// remove comments from entry
-		if (entry.contains("/*"))
+        final int commentStart = entry.indexOf("/*");
+        if (commentStart != -1)
 		{
-			String comment = entry.substring(entry.indexOf("/*"), entry.indexOf("*/") + 2);
+            String comment = entry.substring(commentStart, entry.indexOf("*/", commentStart + 2) + 2);
 			entry = entry.replace(comment, "");
 		}
 		

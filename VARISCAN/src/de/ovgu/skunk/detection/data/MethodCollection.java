@@ -1,10 +1,10 @@
-package data;
+package de.ovgu.skunk.detection.data;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import com.thoughtworks.xstream.XStream;
 
@@ -15,7 +15,7 @@ public class MethodCollection
 {
 	
 	/** The methods per file. */
-	public static HashMap<String, List<Method>> methodsPerFile;
+	public static Map<String, List<Method>> methodsPerFile;
 	
 	/**
 	 * Instantiates a new method collection.
@@ -138,9 +138,10 @@ public class MethodCollection
 	 *
 	 * @param xml the serialized xml representation
 	 */
+	@SuppressWarnings("unchecked")
 	public static void DeserialzeMethods(File xmlFile)
 	{
 		XStream stream = new XStream();
-		methodsPerFile = (HashMap<String, List<Method>>) stream.fromXML(xmlFile);
+		methodsPerFile = (Map<String, List<Method>>) stream.fromXML(xmlFile);
 	}
 }

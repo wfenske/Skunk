@@ -1,10 +1,10 @@
-package detection;
+package de.ovgu.skunk.detection.detector;
 
 /**
- * The Enum is used to set reasons why a feature collection is considered a code smell. 
- * Can be used for later filtering for more complex configurations
+ * This enum is used to set reasons why a feature collection is considered a
+ * code smell. Can be used for later filtering for more complex configurations
  */
-public enum EnumReason {
+public enum SmellReason {
 	LARGEFEATURE_LOFCTOMEANLOFC,
 	LARGEFEATURE_LOFCTOLOC,
 	LARGEFEATURE_NUMBERLOFC,

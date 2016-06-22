@@ -1,4 +1,4 @@
-package output;
+package de.ovgu.skunk.detection.output;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -10,56 +10,94 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
-import org.apache.commons.io.FileUtils;
 
-import data.Feature;
-import data.FeatureExpressionCollection;
-import data.FeatureConstant;
-import data.FileCollection;
-import data.Method;
-import data.MethodCollection;
-import detection.DetectionConfig;
-import detection.EnumReason;
+import de.ovgu.skunk.detection.data.Feature;
+import de.ovgu.skunk.detection.data.FeatureExpressionCollection;
+import de.ovgu.skunk.detection.data.FeatureReference;
+import de.ovgu.skunk.detection.data.FileCollection;
+import de.ovgu.skunk.detection.data.Method;
+import de.ovgu.skunk.detection.data.MethodCollection;
+import de.ovgu.skunk.detection.detector.DetectionConfig;
+import de.ovgu.skunk.detection.detector.SmellReason;
 
 public class AnalyzedDataHandler {
 
 	private DetectionConfig conf = null;
 	private String currentDate = "";
 	
+    static abstract class CsvWriterHelper {
+        public void write(String fileName) {
+            FileWriter writer = null;
+            CSVPrinter csv = null;
+
+            try {
+                writer = new FileWriter(fileName);
+
+                try {
+                    csv = new CSVPrinter(writer, CSVFormat.EXCEL);
+                    actuallyDoStuff(csv);
+                } catch (Exception e) {
+                    throw new RuntimeException("Error writing CSV file `" + fileName + "'", e);
+                } finally {
+                    try {
+                        if (csv != null)
+                            csv.close();
+                    } catch (IOException e) {
+                        throw new RuntimeException("Error closing CSV printer for file `" + fileName + "'", e);
+                    }
+                }
+            } catch (IOException e) {
+                throw new RuntimeException("Error writing CSV file `" + fileName + "'", e);
+            } finally {
+                try {
+                    if (writer != null) {
+                        writer.flush();
+                        writer.close();
+                    }
+                } catch (IOException e) {
+                    throw new RuntimeException("Error flushing/closing file writer for CSV file `" + fileName + "'", e);
+                }
+            }
+        }
+
+        protected abstract void actuallyDoStuff(CSVPrinter csv) throws IOException;
+    }
+
 	/** A comparator that compares featurenames of feature constants. */
-	public final static Comparator<FeatureConstant> FEATURECONSTANT_FEATURENAME_COMPARATOR = new Comparator<FeatureConstant>()
+	public final static Comparator<FeatureReference> FEATURECONSTANT_FEATURENAME_COMPARATOR = new Comparator<FeatureReference>()
 	{
-		@Override public int compare(FeatureConstant f1, FeatureConstant f2)
+		@Override public int compare(FeatureReference f1, FeatureReference f2)
 		{
-			return f1.corresponding.Name.compareTo(f2.corresponding.Name);
+			return f1.feature.Name.compareTo(f2.feature.Name);
 		}
 	};
 	
 	/** A comparator that compares the filepath of feature constant*/
-	public final static Comparator<FeatureConstant> FEATURECONSTANT_FILEPATH_COMPARATOR = new Comparator<FeatureConstant>()
+	public final static Comparator<FeatureReference> FEATURECONSTANT_FILEPATH_COMPARATOR = new Comparator<FeatureReference>()
 	{
-		@Override public int compare(FeatureConstant f1, FeatureConstant f2)
+		@Override public int compare(FeatureReference f1, FeatureReference f2)
 		{
 			return f1.filePath.compareTo(f2.filePath);
 		}
 	};
 	
 	/** A comparator that compares startposition of feature constants. */
-	public final static Comparator<FeatureConstant> FEATURECONSTANT_START_COMPARATOR = new Comparator<FeatureConstant>()
+	public final static Comparator<FeatureReference> FEATURECONSTANT_START_COMPARATOR = new Comparator<FeatureReference>()
 	{
-		@Override public int compare(FeatureConstant f1, FeatureConstant f2)
+		@Override public int compare(FeatureReference f1, FeatureReference f2)
 		{	
 			return Integer.compare(f1.start,f2.start);
 		}
 	};
 	
 	/** A comparator that compares startposition of feature constants methods. */
-	public final static Comparator<FeatureConstant>  FEATURECONSTANT_METHOD_COMPARATOR = new Comparator<FeatureConstant>()
+	public final static Comparator<FeatureReference>  FEATURECONSTANT_METHOD_COMPARATOR = new Comparator<FeatureReference>()
 	{
-		@Override public int compare(FeatureConstant f1, FeatureConstant f2)
+		@Override public int compare(FeatureReference f1, FeatureReference f2)
 		{
 			if (f1.inMethod == null)
 			{
@@ -132,7 +170,7 @@ public class AnalyzedDataHandler {
 	
 	/**** TXT Start End Saving *****/
 	
-	public void SaveTextResults(HashMap<FeatureConstant, ArrayList<EnumReason>> results)
+    public void SaveTextResults(Map<FeatureReference, List<SmellReason>> results)
 	{			
 		// get the results of the complete detection process and the whole project
 		String overview = this.getOverviewResults(results);
@@ -149,18 +187,22 @@ public class AnalyzedDataHandler {
 		String features = this.getFeatureSortedResults(results);
 		
 		currentDate = new SimpleDateFormat("yyyyMMddhhmm").format(new Date());
-		String fileName = currentDate + "_detection_";
+        String fileNamePrefix = currentDate + "_detection_";
+
+        SimpleFileWriter writer = new SimpleFileWriter();
 		
 		try 
 		{
-			FileUtils.write(new File(fileName + "overview.txt"), overview);
-			FileUtils.write(new File(fileName + "attributes.txt"), attributes);
-			FileUtils.write(new File(fileName + "files.txt"), files);
-			FileUtils.write(new File(fileName + "methods.txt"), methods);
-			FileUtils.write(new File(fileName + "features.txt"), features);
-			System.out.println("Detection result files saved to the working directory...");
+            writer.write(new File(fileNamePrefix + "overview.txt"), overview);
+            writer.write(new File(fileNamePrefix + "attributes.txt"), attributes);
+            writer.write(new File(fileNamePrefix + "files.txt"), files);
+            writer.write(new File(fileNamePrefix + "methods.txt"), methods);
+            writer.write(new File(fileNamePrefix + "features.txt"), features);
+
+            System.out.println("Detection result files (" + writer.prettyFileNameList() + ") saved to directory `"
+                    + writer.getDir() + "'");
 		} catch (IOException e) {
-			e.printStackTrace();
+            throw new RuntimeException("I/O error while saving detection results as text.", e);
 		}
 	}
 
@@ -170,15 +212,15 @@ public class AnalyzedDataHandler {
 	 * @param results the results
 	 * @return the attribute overview results
 	 */
-	private String getAttributeOverviewResults(HashMap<FeatureConstant, ArrayList<EnumReason>> results)
+    private String getAttributeOverviewResults(Map<FeatureReference, List<SmellReason>> results)
 	{
 		String res = conf.toString() +"\r\n\r\n\r\n\r\n\r\n";
 
-		ArrayList<AttributeOverview> attributes = new ArrayList<AttributeOverview>();
+        List<AttributeOverview> attributes = new ArrayList<AttributeOverview>();
 		
-		for (FeatureConstant key : results.keySet())
+		for (FeatureReference key : results.keySet())
 		{
-			for (EnumReason reason : results.get(key))
+			for (SmellReason reason : results.get(key))
 			{
 				// get fitting attribute or create one
 				boolean add = true;
@@ -210,20 +252,20 @@ public class AnalyzedDataHandler {
 	 * @param results the results
 	 * @return the location results
 	 */
-	private String getFileSortedRestults(HashMap<FeatureConstant, ArrayList<EnumReason>> results)
+    private String getFileSortedRestults(Map<FeatureReference, List<SmellReason>> results)
 	{
 		String res = conf.toString() + "\r\n\r\n\r\n\r\n\r\n\r\n";
 		
 		// sort the keys after featurename, filepath and start
-		ArrayList<FeatureConstant> sortedKeys = new ArrayList<FeatureConstant>(results.keySet());
-		Collections.sort(sortedKeys, new ComparatorChain<FeatureConstant>(FEATURECONSTANT_FILEPATH_COMPARATOR, FEATURECONSTANT_START_COMPARATOR));
+        List<FeatureReference> sortedKeys = new ArrayList<FeatureReference>(results.keySet());
+		Collections.sort(sortedKeys, new ComparatorChain<FeatureReference>(FEATURECONSTANT_FILEPATH_COMPARATOR, FEATURECONSTANT_START_COMPARATOR));
 		
 		res += ">>> File-Sorted Results:\r\n";
 		
 		String currentPath = "";
 		
 		// print the the locations and reasons sorted after feature
-		for (FeatureConstant key : sortedKeys)
+		for (FeatureReference key : sortedKeys)
 		{		
 			if (!key.filePath.equals(currentPath))
 			{
@@ -232,7 +274,7 @@ public class AnalyzedDataHandler {
 				res += "Start\t\tEnd\t\tFeature\t\tReason\r\n";
 			}
 			
-			res += key.start + "\t\t" + key.end + "\t\t" + key.corresponding.Name + "\t\t"+results.get(key).toString() + "\r\n";
+			res += key.start + "\t\t" + key.end + "\t\t" + key.feature.Name + "\t\t"+results.get(key).toString() + "\r\n";
 		}
 		
 		return res;
@@ -244,13 +286,13 @@ public class AnalyzedDataHandler {
 	 * @param results the detection results
 	 * @return the results per feature
 	 */
-	private String getFeatureSortedResults(HashMap<FeatureConstant, ArrayList<EnumReason>> results)
+    private String getFeatureSortedResults(Map<FeatureReference, List<SmellReason>> results)
 	{
 		String res = conf.toString() + "\r\n\r\n\r\n\r\n\r\n";
 		
 		// sort the keys after featurename, filepath and start
-		ArrayList<FeatureConstant> sortedKeys = new ArrayList<FeatureConstant>(results.keySet());
-		Collections.sort(sortedKeys, new ComparatorChain<FeatureConstant>(FEATURECONSTANT_FEATURENAME_COMPARATOR, FEATURECONSTANT_FILEPATH_COMPARATOR, FEATURECONSTANT_START_COMPARATOR));
+        List<FeatureReference> sortedKeys = new ArrayList<FeatureReference>(results.keySet());
+		Collections.sort(sortedKeys, new ComparatorChain<FeatureReference>(FEATURECONSTANT_FEATURENAME_COMPARATOR, FEATURECONSTANT_FILEPATH_COMPARATOR, FEATURECONSTANT_START_COMPARATOR));
 		
 		res += ">>> Feature-Sorted Results";
 		
@@ -258,11 +300,11 @@ public class AnalyzedDataHandler {
 		String currentPath = "";
 		
 		// print the the locations and reasons sorted after feature
-		for (FeatureConstant key : sortedKeys)
+		for (FeatureReference key : sortedKeys)
 		{
-			if (!key.corresponding.Name.equals(currentName))
+			if (!key.feature.Name.equals(currentName))
 			{
-				currentName = key.corresponding.Name;
+				currentName = key.feature.Name;
 				res += "\r\n\r\n\r\n[Feature: " + currentName + "]\r\n"; 
 				
 				// reset filepath
@@ -289,11 +331,11 @@ public class AnalyzedDataHandler {
 	 * @param results the detection results
 	 * @return the results per feature
 	 */
-	private String getMethodSortedResults(HashMap<FeatureConstant, ArrayList<EnumReason>> results)
+    private String getMethodSortedResults(Map<FeatureReference, List<SmellReason>> results)
 	{
 		String res = conf.toString() + "\r\n\r\n\r\n\r\n\r\n";
-		ArrayList<FeatureConstant> sortedKeys = new ArrayList<FeatureConstant>(results.keySet());
-		Collections.sort(sortedKeys, new ComparatorChain<FeatureConstant>(FEATURECONSTANT_FILEPATH_COMPARATOR, FEATURECONSTANT_METHOD_COMPARATOR, FEATURECONSTANT_START_COMPARATOR));
+        List<FeatureReference> sortedKeys = new ArrayList<FeatureReference>(results.keySet());
+		Collections.sort(sortedKeys, new ComparatorChain<FeatureReference>(FEATURECONSTANT_FILEPATH_COMPARATOR, FEATURECONSTANT_METHOD_COMPARATOR, FEATURECONSTANT_START_COMPARATOR));
 		
 		res += ">>> Method-Sorted Results";
 		
@@ -301,7 +343,7 @@ public class AnalyzedDataHandler {
 		String currentPath = "";
 		
 		// print feature constants with reason per File and Method
-		for (FeatureConstant key : sortedKeys)
+		for (FeatureReference key : sortedKeys)
 		{
 			// don't display feature that are not in a method
 			if (key.inMethod == null)
@@ -328,15 +370,16 @@ public class AnalyzedDataHandler {
 	
 	
 	/**
-	 * Get the results of the complete set.
-	 *
-	 * @param results the result hasmap from the detection process
-	 */
- 	private String getOverviewResults(HashMap<FeatureConstant, ArrayList<EnumReason>> results) 
+     * Get the results of the complete set.
+     *
+     * @param results
+     *            the result hash map from the detection process
+     */
+    private String getOverviewResults(Map<FeatureReference, List<SmellReason>> results) 
 	{
  		String res = conf.toString();
 		// amount of feature constants
-		ArrayList<String> constants = new ArrayList<String>();
+        List<String> constants = new ArrayList<String>();
 		float percentOfConstants = 0;
 		
 		// amount of feature constants
@@ -347,15 +390,15 @@ public class AnalyzedDataHandler {
 		int completeLofc = 0;
 		
 		// loac in project
-		HashMap<String, ArrayList<Integer>> loacs = new HashMap<String, ArrayList<Integer>>();
+        HashMap<String, List<Integer>> loacs = new HashMap<>();
 		int completeLoac = 0;
 		float percentOfLoc = 0;
 		
-		for (FeatureConstant constant : results.keySet())
+		for (FeatureReference constant : results.keySet())
 		{
 			// get the amount of feature constants by saving each feature constant name
-			if (!constants.contains(constant.corresponding.Name))
-				constants.add(constant.corresponding.Name);
+			if (!constants.contains(constant.feature.Name))
+				constants.add(constant.feature.Name);
 			
 			// add lines of code to result
 			completeLofc += constant.end-constant.start;
@@ -377,13 +420,13 @@ public class AnalyzedDataHandler {
 		
 		// calculate percentages
 		percentOfLoc = completeLoac * 100 / FeatureExpressionCollection.GetLoc();
-		percentOfLocations = countLocations * 100 / FeatureExpressionCollection.numberOfFeatureConstants;
+		percentOfLocations = countLocations * 100 / FeatureExpressionCollection.numberOfFeatureConstantReferences;
 		percentOfConstants = constants.size() * 100 / FeatureExpressionCollection.GetFeatures().size();
 		
 		// Complete overview
 		res += "\r\n\r\n\r\n>>> Complete Overview\r\n";
 		res += "Number of features: \t" + constants.size() + " (" + percentOfConstants + "% of " + FeatureExpressionCollection.GetFeatures().size() + " constants)\r\n";
-		res += "Number of feature constants: \t" + countLocations  + " (" + percentOfLocations + "% of " + FeatureExpressionCollection.numberOfFeatureConstants + " locations)\r\n";
+		res += "Number of feature constants: \t" + countLocations  + " (" + percentOfLocations + "% of " + FeatureExpressionCollection.numberOfFeatureConstantReferences + " locations)\r\n";
 		res += "Lines of annotated Code: \t" + completeLoac + " (" + percentOfLoc + "% of " + FeatureExpressionCollection.GetLoc() + " LOC)\r\n";
 		res += "Lines of feature code: \t\t" + completeLofc + "\r\n";
 		
@@ -407,19 +450,27 @@ public class AnalyzedDataHandler {
  	
  	public void SaveCsvResults()
  	{
- 		FileWriter writer = null;
- 		CSVPrinter csv = null;
- 		
  		// ensure consistent filenaming
  		if (this.currentDate.equals(""))
  			currentDate = new SimpleDateFormat("yyyyMMddhhmm").format(new Date());
- 		String fileName = this.currentDate + "_metrics_";
+        String fileNamePrefix = this.currentDate + "_metrics_";
  		
- 		this.createMethodCSV(fileName + "methods.csv", writer, csv);
- 		this.createFeatureCSV(fileName +"features.csv", writer, csv);
- 		this.createFileCSV(fileName + "files.csv" , writer, csv);
+        String fnMethods = fileNamePrefix + "methods.csv";
+        String fnFeatures = fileNamePrefix + "features.csv";
+        String fnFiles = fileNamePrefix + "files.csv";
+
+        String dirName;
+        try {
+            dirName = (new File(fnMethods)).getCanonicalFile().getParent();
+        } catch (IOException e) {
+            throw new RuntimeException("I/O error writing CSV results", e);
+        }
+
+        this.createMethodCSV(fnMethods);
+        this.createFeatureCSV(fnFeatures);
+        this.createFileCSV(fnFiles);
  		
- 		System.out.println("Metric files saved to the working directory");
+        System.out.printf("Metric files (%s, %s, %s) saved in directory %s\n", fnFeatures, fnFiles, fnMethods, dirName);
  	}
 
  	/**
@@ -429,48 +480,32 @@ public class AnalyzedDataHandler {
 	  * @param writer the writer
 	  * @param csv the csv printer
 	  */
-	private void createFileCSV(String fileName, FileWriter writer, CSVPrinter csv)
- 	{
- 		try
- 		{
- 			writer = new FileWriter(fileName);
- 			csv = new CSVPrinter(writer, CSVFormat.EXCEL);
- 			// add the header for the csv file
- 	 		Object [] FileHeader = {"File", "AFSmell","LocationSmell","ConstantsSmell", "NestingSmell", "LOC", "LOAC", "LOFC", "NOFC_Dup", "NOFC_NonDup", "NOFL", "NONEST"};
- 			csv.printRecord(FileHeader);
- 			
- 			// calculate values and add records
- 			List<Object[]> fileData = new ArrayList<Object[]>();
- 			for (data.File file : FileCollection.Files)
- 			{
- 				if (skipFile(file))
- 						continue;
- 					
- 				fileData.add(createFileRecord(file));
- 			}
- 			
- 			// sort after smellvalue
- 			Collections.sort(fileData, new ComparatorChain<Object[]>(AFSmellComparator));
- 			
- 			for (Object[] record : fileData)
- 				csv.printRecord(record);
- 		}
- 		catch (Exception e) {
-            System.out.println("Error in CsvFileWriter !!!");
-            e.printStackTrace();
-        } 
- 		finally 
- 		{
-            try 
-            {
-                writer.flush();
-                writer.close();
-                csv.close();
-            } catch (IOException e) {
-                System.out.println("Error while flushing/closing fileWriter/csvPrinter !!!");
-                e.printStackTrace();
+    private void createFileCSV(String fileName) {
+        CsvWriterHelper h = new CsvWriterHelper() {
+            @Override
+            protected void actuallyDoStuff(CSVPrinter csv) throws IOException {
+                // add the header for the CSV file
+                Object[] FileHeader = { "File", "AFSmell", "LocationSmell", "ConstantsSmell", "NestingSmell", "LOC",
+                        "LOAC", "LOFC", "NOFC_Dup", "NOFC_NonDup", "NOFL", "NONEST" };
+                csv.printRecord(FileHeader);
+
+                // calculate values and add records
+                List<Object[]> fileData = new ArrayList<Object[]>();
+                for (de.ovgu.skunk.detection.data.File file : FileCollection.Files) {
+                    if (skipFile(file))
+                        continue;
+
+                    fileData.add(createFileRecord(file));
+                }
+
+                // sort by smell value
+                Collections.sort(fileData, new ComparatorChain<Object[]>(AFSmellComparator));
+
+                for (Object[] record : fileData)
+                    csv.printRecord(record);
             }
-        }
+        };
+        h.write(fileName);
  	}
  	
  	/**
@@ -479,11 +514,11 @@ public class AnalyzedDataHandler {
 	  * @param file the file
 	  * @return the object[] a csv record as array
 	  */
-	private Object[] createFileRecord(data.File file)
+	private Object[] createFileRecord(de.ovgu.skunk.detection.data.File file)
  	{
 		// calculate smell values
 		// Loac/Loc * #FeatLocs
-		float featLocSmell = conf.File_LoacToLocRatio_Weight * (((float) file.GetLinesOfAnnotatedCode() / (float) file.loc) * (float) file.numberOfFeatureLocations);
+		float featLocSmell = conf.File_LoacToLocRatio_Weight * (((float) file.GetLinesOfAnnotatedCode() / (float) file.loc) * file.numberOfFeatureLocations);
 		
 		// #Constants/#FeatLocs
 		float featConstSmell = conf.File_NumberOfFeatureConstants_Weight * ((float) file.GetFeatureConstantCount() / (float) file.numberOfFeatureLocations);
@@ -515,49 +550,33 @@ public class AnalyzedDataHandler {
 	 * @param writer the writer
 	 * @param csv the csv
 	 */
-	private void createFeatureCSV(String fileName, FileWriter writer, CSVPrinter csv) {
-		try
- 		{
- 			writer = new FileWriter(fileName);
- 			csv = new CSVPrinter(writer, CSVFormat.EXCEL);
- 		
- 			// TODO Wieviele NOFC in Kombination
- 			// add the header for the csv file
- 	 		Object [] FeatureHeader = {"Name", "LGSmell", "SSSmell ","ConstantsSmell", "LOFCSmell", "CUSmell", "NOFC", "MAXNOFC", "LOFC", "ProjectLOC", "NOCU"};
- 			csv.printRecord(FeatureHeader);
- 			
- 			// calculate values and add records
- 			List<Object[]> featureData = new ArrayList<Object[]>();
- 			for (Feature feat : FeatureExpressionCollection.GetFeatures())
- 			{
- 				if (skipFeature(feat))
- 					continue;
- 				
- 				featureData.add(this.createFeatureRecord(feat));
- 			}
- 			
- 			// sort after smellvalue
- 			Collections.sort(featureData, new ComparatorChain<Object[]>(LGSmellComparator));
- 			
- 			for (Object[] record : featureData)
- 				csv.printRecord(record);
- 		}
- 		catch (Exception e) {
-            System.out.println("Error in CsvFileWriter !!!");
-            e.printStackTrace();
-        } 
- 		finally 
- 		{
-            try 
-            {
-                writer.flush();
-                writer.close();
-                csv.close();
-            } catch (IOException e) {
-                System.out.println("Error while flushing/closing fileWriter/csvPrinter !!!");
-                e.printStackTrace();
+    private void createFeatureCSV(String fileName) {
+        CsvWriterHelper h = new CsvWriterHelper() {
+            @Override
+            protected void actuallyDoStuff(CSVPrinter csv) throws IOException {
+                // TODO Wieviele NOFC in Kombination
+                // add the header for the csv file
+                Object[] FeatureHeader = { "Name", "LGSmell", "SSSmell ", "ConstantsSmell", "LOFCSmell", "CUSmell",
+                        "NOFC", "MAXNOFC", "LOFC", "ProjectLOC", "NOCU" };
+                csv.printRecord(FeatureHeader);
+
+                // calculate values and add records
+                List<Object[]> featureData = new ArrayList<Object[]>();
+                for (Feature feat : FeatureExpressionCollection.GetFeatures()) {
+                    if (skipFeature(feat))
+                        continue;
+
+                    featureData.add(createFeatureRecord(feat));
+                }
+
+                // sort after smellvalue
+                Collections.sort(featureData, new ComparatorChain<Object[]>(LGSmellComparator));
+
+                for (Object[] record : featureData)
+                    csv.printRecord(record);
             }
-        }
+        };
+        h.write(fileName);
 	}
  	
  	/**
@@ -569,7 +588,7 @@ public class AnalyzedDataHandler {
 	 private Object[] createFeatureRecord(Feature feat)
  	{
  		// # featureConstants/#TotalLocations
- 		float constSmell = this.conf.Feature_NumberNofc_Weight * (((float) feat.getConstants().size()) / ((float) FeatureExpressionCollection.numberOfFeatureConstants));
+ 		float constSmell = this.conf.Feature_NumberNofc_Weight * (((float) feat.getConstants().size()) / ((float) FeatureExpressionCollection.numberOfFeatureConstantReferences));
  		
  		// LOFC/TotalLoc   																				
  		float lofcSmell = this.conf.Feature_NumberLofc_Weight * (((float)feat.getLofc()) / ((float) FeatureExpressionCollection.GetLoc()));
@@ -589,7 +608,7 @@ public class AnalyzedDataHandler {
  		result[5] = compilUnitsSmell;
  		
  		result[6] = feat.getConstants().size();
- 		result[7] = FeatureExpressionCollection.numberOfFeatureConstants;
+ 		result[7] = FeatureExpressionCollection.numberOfFeatureConstantReferences;
  		result[8] = feat.getLofc();
  		result[9] = FeatureExpressionCollection.GetLoc();
  		result[10] = feat.compilationFiles.size();
@@ -603,51 +622,34 @@ public class AnalyzedDataHandler {
 	 * @param writer the writer
 	 * @param csv the csv
 	 */
-	private void createMethodCSV(String fileName, FileWriter writer, CSVPrinter csv) {
-		try
- 		{
- 			writer = new FileWriter(fileName);
- 			csv = new CSVPrinter(writer, CSVFormat.EXCEL);
- 		
- 			// add the header for the csv file
- 	 		Object [] MethodHeader = {"File","Start", "Method","ABSmell","LocationSmell","ConstantsSmell", "NestingSmell", "LOC", "LOAC", "LOFC", "NOFL", "NOFC_Dup", "NOFC_NonDup", "NONEST"};
- 			csv.printRecord(MethodHeader);
- 			
- 			// calculate values and add records
- 			List<Object[]> methodData = new ArrayList<Object[]>();
- 			for (List<Method> methods : MethodCollection.methodsPerFile.values())
- 			{
- 				for (Method meth : methods)
- 				{
- 					if (skipMethod(meth))
- 						continue;
- 					
- 					methodData.add(createMethodRecord(meth));
- 				}
- 			}
- 			
- 			// sort after smellvalue
- 			Collections.sort(methodData, new ComparatorChain<Object[]>(ABSmellComparator));
- 			
- 			for (Object[] record : methodData)
- 				csv.printRecord(record);
- 		}
- 		catch (Exception e) {
-            System.out.println("Error in CsvFileWriter !!!");
-            e.printStackTrace();
-        } 
- 		finally 
- 		{
-            try 
-            {
-                writer.flush();
-                writer.close();
-                csv.close();
-            } catch (IOException e) {
-                System.out.println("Error while flushing/closing fileWriter/csvPrinter !!!");
-                e.printStackTrace();
+    private void createMethodCSV(String fileName) {
+        CsvWriterHelper h = new CsvWriterHelper() {
+            @Override
+            protected void actuallyDoStuff(CSVPrinter csv) throws IOException {
+                // add the header for the csv file
+                Object[] MethodHeader = { "File", "Start", "Method", "ABSmell", "LocationSmell", "ConstantsSmell",
+                        "NestingSmell", "LOC", "LOAC", "LOFC", "NOFL", "NOFC_Dup", "NOFC_NonDup", "NONEST" };
+                csv.printRecord(MethodHeader);
+
+                // calculate values and add records
+                List<Object[]> methodData = new ArrayList<Object[]>();
+                for (List<Method> methods : MethodCollection.methodsPerFile.values()) {
+                    for (Method meth : methods) {
+                        if (skipMethod(meth))
+                            continue;
+
+                        methodData.add(createMethodRecord(meth));
+                    }
+                }
+
+                // sort by smell value
+                Collections.sort(methodData, new ComparatorChain<Object[]>(ABSmellComparator));
+
+                for (Object[] record : methodData)
+                    csv.printRecord(record);
             }
-        }
+        };
+        h.write(fileName);
 	}
  	
  	
@@ -661,7 +663,7 @@ public class AnalyzedDataHandler {
 	{
 		// calculate smell values
 		// Loac/Loc * #FeatLocs
-		float featLocSmell = conf.Method_LoacToLocRatio_Weight * (((float) currentMethod.GetLinesOfAnnotatedCode() / (float) currentMethod.loc) * (float) currentMethod.numberFeatureLocations);
+		float featLocSmell = conf.Method_LoacToLocRatio_Weight * (((float) currentMethod.GetLinesOfAnnotatedCode() / (float) currentMethod.loc) * currentMethod.numberFeatureLocations);
 		
 		// #Constants/#FeatLocs
 		float featConstSmell = conf.Method_NumberOfFeatureConstants_Weight * ((float) currentMethod.GetFeatureConstantCount() / (float) currentMethod.numberFeatureLocations);
@@ -721,7 +723,7 @@ public class AnalyzedDataHandler {
 	 * @param method the method
 	 * @return true, if method does not fulfill mandatory settings
 	 */
-	private boolean skipFile(data.File file)
+	private boolean skipFile(de.ovgu.skunk.detection.data.File file)
 	{
 		boolean result = false;
 	
@@ -755,4 +757,3 @@ public class AnalyzedDataHandler {
 	
 	/**** CSV Start End Saving *****/
 }
-

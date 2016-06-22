@@ -1,4 +1,4 @@
-package output;
+package de.ovgu.skunk.detection.output;
 
 import java.io.File;
 import java.io.IOException;
@@ -8,9 +8,9 @@ import java.util.List;
 
 import org.apache.commons.io.FileUtils;
 
-import data.FeatureExpressionCollection;
-import data.FileCollection;
-import data.MethodCollection;
+import de.ovgu.skunk.detection.data.FeatureExpressionCollection;
+import de.ovgu.skunk.detection.data.FileCollection;
+import de.ovgu.skunk.detection.data.MethodCollection;
 
 /**
  * The Class ProcessedDataHandler saves the data that is created by the CppStats and SrcML readers.
@@ -28,26 +28,27 @@ public class ProcessedDataHandler {
 	 */
 	public static void SaveProcessedData()
 	{
-		System.out.println("\r\n... Saving processed Data....");
+        System.out.println();
+        System.out.print("Saving processed data ...");
 		
 		String date = new SimpleDateFormat("yyyyMMddhhmm").format(new Date());
-		String generalInput = "FeatureExpressionCollection=" + FeatureExpressionCollection.GetCount() + ";" + FeatureExpressionCollection.GetLoc() + ";" + FeatureExpressionCollection.GetMeanLofc() + ";" + FeatureExpressionCollection.numberOfFeatureConstants;
+		String generalInput = "FeatureExpressionCollection=" + FeatureExpressionCollection.GetCount() + ";" + FeatureExpressionCollection.GetLoc() + ";" + FeatureExpressionCollection.GetMeanLofc() + ";" + FeatureExpressionCollection.numberOfFeatureConstantReferences;
 		
 		// Save files
+        final SimpleFileWriter writer = new SimpleFileWriter();
 		try 
 		{
-			FileUtils.write(new File(date + "_" + featuresPath), FeatureExpressionCollection.SerializeFeatures());
-			FileUtils.write(new File(date + "_" + methodsPath), MethodCollection.SerializeMethods());
-			FileUtils.write(new File(date + "_" + filesPath), FileCollection.SerializeFiles());
-			FileUtils.write(new File(date + "_" + generalPath), generalInput);
-		} 
+            writer.write(new File(date + "_" + featuresPath), FeatureExpressionCollection.SerializeFeatures());
+            writer.write(new File(date + "_" + methodsPath), MethodCollection.SerializeMethods());
+            writer.write(new File(date + "_" + filesPath), FileCollection.SerializeFiles());
+            writer.write(new File(date + "_" + generalPath), generalInput);
+        }
 		catch (IOException e) 
 		{
-			System.out.println("ERROR: Could not save processed data files");
-			e.printStackTrace();
-		}
+            throw new RuntimeException("I/O exception while saving processed data files", e);
+        }
 		
-		System.out.println("... done!");
+        System.out.printf(" done. Files (%s) saved in directory %s.\n", writer.prettyFileNameList(), writer.getDir());
 	}
 	
 	/**
@@ -57,7 +58,8 @@ public class ProcessedDataHandler {
 	 */
 	public static void LoadProcessedData(String folderPath)
 	{
-		System.out.println("... loading processed data from folder " + folderPath + "...");
+        System.out.println();
+        System.out.println("Loading processed data from folder " + folderPath + " ...");
 		
 		// open the directory
 		File directory = new File(folderPath);
@@ -94,24 +96,23 @@ public class ProcessedDataHandler {
 									FeatureExpressionCollection.SetCount(Integer.parseInt(split[0]));
 									FeatureExpressionCollection.AddLoc(Integer.parseInt(split[1]));
 									FeatureExpressionCollection.SetMeanLofc(Integer.parseInt(split[2]));
-									FeatureExpressionCollection.numberOfFeatureConstants = Integer.parseInt(split[3]);
+									FeatureExpressionCollection.numberOfFeatureConstantReferences = Integer.parseInt(split[3]);
 									break;
 								}
 							}
 						}
 					}		
 				}	
-				System.out.println("... done!");
+                System.out.println(" done.");
 			} 
 			catch (Exception e) 
 			{
-				System.out.println("ERROR: could not load processed data!");
-				e.printStackTrace();
+				throw new RuntimeException("Error loading processed data from " + directory, e);
 			}
 		}
 		else
 		{
-			System.out.println("No processed data in the directory found!");
+			throw new RuntimeException("No processed data in directory " + directory);
 		}
 	}
 }

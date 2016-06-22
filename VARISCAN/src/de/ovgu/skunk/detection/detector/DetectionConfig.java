@@ -1,4 +1,4 @@
-package detection;
+package de.ovgu.skunk.detection.detector;
 
 import java.io.File;
 import java.io.IOException;
@@ -171,6 +171,7 @@ public class DetectionConfig {
 				String[] split = line.split("=");
 				
 				// get field by name
+				@SuppressWarnings("unchecked")
 				Class<DetectionConfig> thisClass = (Class<DetectionConfig>) this.getClass();
 				Field current = thisClass.getField(split[0]);
 				

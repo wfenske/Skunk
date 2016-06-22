@@ -1,22 +1,32 @@
-package main;
+package de.ovgu.skunk.detection.main;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
+import java.io.PrintWriter;
+import java.util.List;
+import java.util.Map;
 
-import data.FeatureConstant;
-import data.FeatureExpressionCollection;
-import data.FileCollection;
-import data.MethodCollection;
-import detection.DetectionConfig;
-import detection.Detector;
-import detection.EnumReason;
-import input.CppStatsFolderReader;
-import input.SrcMlFolderReader;
-import output.AnalyzedDataHandler;
-import output.ProcessedDataHandler;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.OptionGroup;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
+import org.apache.commons.cli.PatternOptionBuilder;
+
+import de.ovgu.skunk.detection.data.FeatureExpressionCollection;
+import de.ovgu.skunk.detection.data.FeatureReference;
+import de.ovgu.skunk.detection.data.FileCollection;
+import de.ovgu.skunk.detection.data.MethodCollection;
+import de.ovgu.skunk.detection.detector.DetectionConfig;
+import de.ovgu.skunk.detection.detector.Detector;
+import de.ovgu.skunk.detection.detector.SmellReason;
+import de.ovgu.skunk.detection.input.CppStatsFolderReader;
+import de.ovgu.skunk.detection.input.SrcMlFolderReader;
+import de.ovgu.skunk.detection.output.AnalyzedDataHandler;
+import de.ovgu.skunk.detection.output.ProcessedDataHandler;
 
 /**
  * Skunk main class
@@ -24,16 +34,22 @@ import output.ProcessedDataHandler;
  * @author wfenske
  *
  */
-public class Program {
+public class Main {
 
-	/** The code smell configuration. */
-	private static DetectionConfig conf = null;
+    private static final char OPT_HELP = 'h';
+    private static final char OPT_SAVE_INTERMEDIATE = 'm';
+    private static final char OPT_SOURCE = 's';
+    private static final char OPT_PROCESSED = 'p';
+    private static final char OPT_CONFIG = 'c';
+
+    /** The code smell configuration. */
+    private DetectionConfig conf = null;
 
 	/** The path of the source folder. */
-	private static String sourcePath = "";
+    private String sourcePath = null;
 
 	/** A flag that defines, if intermediate formats will be saved. */
-	public static boolean saveIntermediate = false;
+    public boolean saveIntermediate = false;
 
 	/**
 	 * The main method.
@@ -42,188 +58,219 @@ public class Program {
 	 *            the arguments
 	 */
 	public static void main(String[] args) {
-		// Initialize Components
-		FeatureExpressionCollection.Initialize();
-		MethodCollection.Initialize();
-		FileCollection.Initialize();
+        new Main().run(args);
+    }
 
-		// gather input
-		try {
-			parseCommandLineArgs(args);
-		} catch (UsageError ue) {
-			System.err.println(ue);
-			System.exit(1);
-		} catch (Exception e) {
-			System.err.println("Error while processing command line arguments: " + e);
-			e.printStackTrace();
-			System.exit(1);
-		}
+    private void run(String[] args) {
+        // Initialize Components
+        FeatureExpressionCollection.Initialize();
+        MethodCollection.Initialize();
+        FileCollection.Initialize();
 
-		if (!sourcePath.isEmpty()) {
-			// process necessary csv files in project folder
-			CppStatsFolderReader cppReader = new CppStatsFolderReader(sourcePath);
-			cppReader.ProcessFiles();
+        // gather input
+        try {
+            parseCommandLineArgs(args);
+        } catch (UsageError ue) {
+            System.err.println(ue.getMessage());
+            System.err.flush();
+            System.out.flush();
+            System.exit(1);
+        } catch (Exception e) {
+            System.err.println("Error while processing command line arguments: " + e);
+            e.printStackTrace();
+            System.err.flush();
+            System.out.flush();
+            System.exit(1);
+        }
 
-			// process srcML files
-			SrcMlFolderReader mlReader = new SrcMlFolderReader();
-			mlReader.ProcessFiles();
+        if (sourcePath != null && !sourcePath.isEmpty()) {
+            // process necessary csv files in project folder
+            CppStatsFolderReader cppReader = new CppStatsFolderReader(sourcePath);
+            cppReader.ProcessFiles();
 
-			// do post actions
-			MethodCollection.PostAction();
-			FileCollection.PostAction();
+            // process srcML files
+            SrcMlFolderReader mlReader = new SrcMlFolderReader();
+            mlReader.ProcessFiles();
 
-			// save processed data
-			if (saveIntermediate)
-				ProcessedDataHandler.SaveProcessedData();
-		}
+            // do post actions
+            MethodCollection.PostAction();
+            FileCollection.PostAction();
 
-		// display loc, loac, #feat, NOFL and NOFC
-		System.out.println(FeatureExpressionCollection.GetLoc() + " Loc");
-		System.out.println(FeatureExpressionCollection.GetCount() + " Features");
-		System.out.println(FeatureExpressionCollection.numberOfFeatureConstants + " Feature Constants");
+            // save processed data
+            if (saveIntermediate)
+                ProcessedDataHandler.SaveProcessedData();
+        }
 
-		int loac = 0;
-		int nofl = 0;
-		for (data.File f : FileCollection.Files) {
-			loac += f.GetLinesOfAnnotatedCode();
-			nofl += f.numberOfFeatureLocations;
-		}
+        // display loc, loac, #feat, NOFL and NOFC
+        System.out.println();
+        System.out.println("LOC: " + FeatureExpressionCollection.GetLoc());
+        System.out.println("Number of features: " + FeatureExpressionCollection.GetCount());
+        System.out.println("Number of feature constant references: "
+                + FeatureExpressionCollection.numberOfFeatureConstantReferences);
 
-		System.out.println(loac + " Loac: " + (loac * 100) / FeatureExpressionCollection.GetLoc());
-		System.out.println(nofl + " nofl");
+        int loac = 0;
+        int nofl = 0;
+        for (de.ovgu.skunk.detection.data.File f : FileCollection.Files) {
+            loac += f.GetLinesOfAnnotatedCode();
+            nofl += f.numberOfFeatureLocations;
+        }
 
-		// run detection with current configuration
-		if (conf != null) {
-			Detector detector = new Detector(conf);
-			HashMap<FeatureConstant, ArrayList<EnumReason>> res = (HashMap<FeatureConstant, ArrayList<EnumReason>>) detector
-					.Perform();
+        System.out.printf("LOAC: %d (%.0f%% of all lines of code)\n", loac,
+                (loac * 100.0) / FeatureExpressionCollection.GetLoc());
+        System.out.println("NOFL: " + nofl);
 
-			AnalyzedDataHandler presenter = new AnalyzedDataHandler(conf);
-			presenter.SaveTextResults(res);
-			presenter.SaveCsvResults();
-		}
-	}
+        // run detection with current configuration (if present)
+        if (conf != null) {
+            Detector detector = new Detector(conf);
+            Map<FeatureReference, List<SmellReason>> res = detector.Perform();
 
-	/**
-	 * Analyze input to decide what to do during runtime
-	 *
-	 * @param args
-	 *            the input arguments
-	 * @return true, if input is correct
-	 */
-	private static void parseCommandLineArgs(String[] args) {
-		boolean haveConfig = false;
-		boolean haveInput = false;
+            AnalyzedDataHandler presenter = new AnalyzedDataHandler(conf);
+            presenter.SaveTextResults(res);
+            presenter.SaveCsvResults();
+        }
+    }
 
-		// for easier handling, transform to list
-		int i = 0;
-		while (i < args.length) {
-			final String optName = args[i++];
+    /**
+     * Analyze input to decide what to do during runtime
+     *
+     * @param args
+     *            the input arguments
+     */
+    private void parseCommandLineArgs(String[] args) {
+        CommandLineParser parser = new DefaultParser();
+        Options fakeOptionsForHelp = makeOptions(true);
+        Options actualOptions = makeOptions(false);
 
-			if (optName.equals("--")) {
-				if (i == args.length)
-					continue;
-				else {
-					// We don't expect any extra parameters
-					String[] extraParameters = Arrays.copyOfRange(args, i, args.length);
-					throw new UsageError(
-							"Did not expect any positional arguments, got " + Arrays.toString(extraParameters));
-				}
-			}
+        CommandLine line;
+        try {
+            CommandLine dummyLine = parser.parse(fakeOptionsForHelp, args);
+            if (dummyLine.hasOption('h')) {
+                HelpFormatter formatter = new HelpFormatter();
+                System.err.flush();
+                formatter.printHelp(progName() + " [OPTIONS]", actualOptions);
+                System.out.flush();
+                System.exit(0);
+                return;
+            }
+            line = parser.parse(actualOptions, args);
+        } catch (ParseException e) {
+            System.err.println("Error in command line: " + e.getMessage());
+            HelpFormatter formatter = new HelpFormatter();
+            formatter.printUsage(new PrintWriter(System.err, true), 80, progName(), actualOptions);
+            System.exit(1);
+            return;
+        }
 
-			if (!optName.startsWith("--")) {
-				throw new UnrecognizedOption(optName);
-			}
+        // --config=... get the path to the code smell configuration
+        if (line.hasOption(OPT_CONFIG)) {
+            String configPath = line.getOptionValue('c');
+            File fConfig = new File(configPath);
 
-			final boolean haveMoreArgs = i < args.length;
+            if (fConfig.exists() && !fConfig.isDirectory()) {
+                try {
+                    conf = new DetectionConfig(configPath);
+                } catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException
+                        | IOException e) {
+                    throw new RuntimeException("Error opening smell configuration file " + configPath, e);
+                }
+            } else {
+                throw new UsageError("The configuration file, " + configPath + ", does not exist or is a directory.");
+            }
+        }
 
-			// get the path to the code smell configuration
-			if (optName.equals("--config")) {
-				if (!haveMoreArgs) {
-					throw new MissingOptionValue(optName);
-				}
+        // Get the input (--source= or --processed= option)
+        if (line.hasOption(OPT_SOURCE)) {
 
-				String configPath = args[i++];
-				File f = new File(configPath);
+            String path = line.getOptionValue(OPT_SOURCE);
 
-				if (f.exists() && !f.isDirectory()) {
-					try {
-						conf = new DetectionConfig(configPath);
-					} catch (NoSuchFieldException | SecurityException | IllegalArgumentException
-							| IllegalAccessException | IOException e) {
-						throw new RuntimeException("Error opening smell configuration file " + configPath, e);
-					}
-					haveConfig = true;
-				} else {
-					throw new UsageError(
-							"The configuration file, " + configPath + ", does not exist or is a directory.");
-				}
-				continue;
-			}
-			else if (optName.equals("--saveintermediate")) {
-				saveIntermediate = true;
-				continue;
-			}
-			// get the path of the source folder
-			else if (optName.equals("--source")) {
-				if (!haveMoreArgs) {
-					throw new MissingOptionValue(optName);
-				}
+            try {
+                File fSource = new File(path);
 
-				String path = args[i++];
+                if (fSource.exists() && fSource.isDirectory()) {
+                    sourcePath = path;
+                } else {
+                    throw new UsageError("The source path, " + path + ", does not exist or is not a directory.");
+                }
+            } catch (Exception e) {
+                throw new RuntimeException("Error reading source path, " + path, e);
+            }
+        } else if (line.hasOption(OPT_PROCESSED)) {
+            ProcessedDataHandler.LoadProcessedData(line.getOptionValue(OPT_PROCESSED));
+        } else {
+            throw new UsageError(
+                    "Either need to set a source folder (--source=DIR) or a processed data folder (--processed=DIR)!");
+        }
 
-				try {
-					File f = new File(path);
+        // --save-intermediate
+        if (line.hasOption(OPT_SAVE_INTERMEDIATE)) {
+            saveIntermediate = true;
+            if (this.sourcePath == null || this.sourcePath.isEmpty()) {
+                System.err.println("Save intermdiate was requested (option `-" + OPT_SAVE_INTERMEDIATE
+                        + "'), but no source path has been specified (option `-" + OPT_SOURCE
+                        + "). Intermediates will NOT be saved.");
+            }
+        }
+    }
 
-					if (f.exists() && f.isDirectory()) {
-						sourcePath = path;
-					} else {
-						throw new UsageError("The source path, " + path + ", does not exist or is not a directory.");
-					}
-				} catch (Exception e) {
-					throw new RuntimeException("Error reading source path, " + path, e);
-				}
+    private Options makeOptions(boolean forHelp) {
+        boolean required = !forHelp;
+        Options options = new Options();
+        //@formatter:off
+        // --help= option
+        options.addOption(Option.builder(String.valueOf(OPT_HELP))
+                .longOpt("help")
+                .desc("print this help sceen and exit")
+                .build());
+        // --config= option
+        options.addOption(Option.builder(String.valueOf(OPT_CONFIG))
+                .longOpt("config")
+                .desc("code smell detection configuration")
+                .hasArg()
+                .argName("FILE")
+                .type(PatternOptionBuilder.EXISTING_FILE_VALUE)
+                .build());
+        // --save-intermediate flag
+        options.addOption(Option.builder(String.valueOf(OPT_SAVE_INTERMEDIATE))
+                .longOpt("save-intermediate")
+                .desc("save intermediate analysis results to speed up future detection runs")
+                .build());
+        
+        // --source= and --processed= options
+        OptionGroup inputOptions = new OptionGroup();
+        inputOptions.setRequired(required);
 
-				haveInput = true;
-				continue;
-			}
+        inputOptions.addOption(Option.builder(String.valueOf(OPT_SOURCE))
+                .longOpt("source")
+                .desc("path to source directory")
+                .hasArg()
+                .argName("DIR")
+                .build());
+        inputOptions.addOption(Option.builder(String.valueOf(OPT_PROCESSED))
+                .longOpt("processed")
+                .desc("read preprocessed data saved during a previous run")
+                .hasArg()
+                .argName("DIR")
+                .build());
+        
+        options.addOptionGroup(inputOptions);
+        
+        //@formatter:on
+        return options;
+    }
 
-			// read previously processed data
-			else if (optName.equals("--processed")) {
-				if (!haveMoreArgs)
-					throw new MissingOptionValue(optName);
-
-				String path = args[i++];
-				ProcessedDataHandler.LoadProcessedData(path);
-				haveInput = true;
-				continue;
-			} else {
-				throw new UnrecognizedOption(optName);
-			}
-		}
-
-		if (!haveInput) {
-			throw new UsageError(
-					"Either need to set a source folder (--source) or a processed data folder (--processed)!");
-		}
-	}
+    private String progName() {
+        return this.getClass().getSimpleName();
+    }
 
 }
 
 class UsageError extends RuntimeException {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+
 	public UsageError(String message) {
 		super("Usage error: " + message);
-	}
-}
-
-class MissingOptionValue extends UsageError {
-	public MissingOptionValue(String optionName) {
-		super("Option `" + optionName + "' requires a value (none given).");
-	}
-}
-
-class UnrecognizedOption extends UsageError {
-	public UnrecognizedOption(String optionName) {
-		super("Unrecognized option `" + optionName + "'");
 	}
 }

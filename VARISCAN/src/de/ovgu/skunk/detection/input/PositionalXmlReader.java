@@ -1,4 +1,4 @@
-package input;
+package de.ovgu.skunk.detection.input;
 
 //PositionalXMLReader.java taken from http://stackoverflow.com/questions/4915422/get-line-number-from-xml-node-java
 
