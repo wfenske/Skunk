@@ -34,7 +34,7 @@ import de.ovgu.skunk.detection.output.ProcessedDataHandler;
  * @author wfenske
  *
  */
-public class Main {
+public class Skunk {
 
     private static final char OPT_HELP = 'h';
     private static final char OPT_SAVE_INTERMEDIATE = 'm';
@@ -45,20 +45,20 @@ public class Main {
     /** The code smell configuration. */
     private DetectionConfig conf = null;
 
-	/** The path of the source folder. */
+    /** The path of the source folder. */
     private String sourcePath = null;
 
-	/** A flag that defines, if intermediate formats will be saved. */
+    /** A flag that defines, if intermediate formats will be saved. */
     public boolean saveIntermediate = false;
 
-	/**
-	 * The main method.
-	 *
-	 * @param args
-	 *            the arguments
-	 */
-	public static void main(String[] args) {
-        new Main().run(args);
+    /**
+     * The main method.
+     *
+     * @param args
+     *            the arguments
+     */
+    public static void main(String[] args) {
+        new Skunk().run(args);
     }
 
     private void run(String[] args) {
@@ -71,11 +71,15 @@ public class Main {
         try {
             parseCommandLineArgs(args);
         } catch (UsageError ue) {
+            System.err.flush();
+            System.out.flush();
             System.err.println(ue.getMessage());
             System.err.flush();
             System.out.flush();
             System.exit(1);
         } catch (Exception e) {
+            System.err.flush();
+            System.out.flush();
             System.err.println("Error while processing command line arguments: " + e);
             e.printStackTrace();
             System.err.flush();
@@ -265,12 +269,12 @@ public class Main {
 }
 
 class UsageError extends RuntimeException {
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 1L;
 
-	public UsageError(String message) {
-		super("Usage error: " + message);
-	}
+    public UsageError(String message) {
+        super("Usage error: " + message);
+    }
 }
