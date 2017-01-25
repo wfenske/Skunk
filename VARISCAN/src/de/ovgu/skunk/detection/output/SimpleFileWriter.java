@@ -13,8 +13,7 @@ public class SimpleFileWriter {
 
     public void write(File f, String contents) throws IOException {
         FileUtils.write(f, contents);
-        if (dir == null)
-            dir = f.getCanonicalFile().getParent();
+        if (dir == null) dir = f.getCanonicalFile().getParent();
         fileNames.add(f.getName());
     }
 
@@ -33,7 +32,16 @@ public class SimpleFileWriter {
      * @return Name of the directory in which the first file handed to
      *         {@link #write(File, String)} was located.
      */
-    public String getDir() {
+    private String getDir() {
+        if (dir == null) throw new NullPointerException("getDir is called before any files have been written.");
         return dir;
+    }
+
+    /**
+     * @return Name of the directory in which the first file handed to
+     *         {@link #write(File, String)} was located.
+     */
+    public String getDirForDisplay() {
+        return de.ovgu.skunk.util.FileUtils.relPathForDisplay(this.getDir());
     }
 }

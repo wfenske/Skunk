@@ -1,147 +1,179 @@
 package de.ovgu.skunk.detection.data;
 
-import java.io.File;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-
 import com.thoughtworks.xstream.XStream;
+
+import java.io.File;
+import java.util.*;
 
 /**
  * The Class MethodCollection.
  */
-public class MethodCollection 
-{
-	
-	/** The methods per file. */
-	public static Map<String, List<Method>> methodsPerFile;
-	
-	/**
-	 * Instantiates a new method collection.
-	 */
-	public static void Initialize()
-	{
-		methodsPerFile = new HashMap<String, List<Method>>();
-	}
-	
-	/**
-	 * Adds the file.
-	 *
-	 * @param fileName the file name
-	 */
-	public static void AddFile(String fileName)
-	{
-		if (!methodsPerFile.containsKey(fileName))
-			methodsPerFile.put(fileName, new LinkedList<Method>());
-	}
+public class MethodCollection {
+    /**
+     * <p>
+     * Nested map of methods, which has the form
+     * <code>&lt;Filename, Map&lt;MethodSignature, Method&gt;&gt;</code>, where
+     * both <code>Filename</code> and <code>MethodSignature</code> are of type
+     * <code>String</code>.
+     * </p>
+     * <p>
+     * <p>
+     * Both, files and methods per file are returned in the order they were
+     * inserted.
+     * </p>
+     */
+    private Map<String, Map<String, Method>> methodsPerFile;
 
-	/**
-	 * Adds the method to file.
-	 *
-	 * @param fileName the file name
-	 * @param method the method
-	 */
-	public static void AddMethodToFile(String fileName, Method method)
-	{
-		if (methodsPerFile.containsKey(fileName))
-		{
-			if (!methodsPerFile.get(fileName).contains(method))
-				methodsPerFile.get(fileName).add(method);
-		}
-		else
-		{
-			AddFile(fileName);
-			AddMethodToFile(fileName, method);
-		}
-	}
-	
-	/**
-	 * Gets the methods of file.
-	 *
-	 * @param fileName the file name
-	 * @return the list
-	 */
-	public static List<Method> GetMethodsOfFile(String fileName)
-	{
-		if (methodsPerFile.containsKey(fileName))
-			return methodsPerFile.get(fileName);
-		else
-			return null;
-	}
-	
-	/**
-	 * Gets the method of a file based on the function signature
-	 *
-	 * @param fileName the file name
-	 * @param functionSignature the function signature
-	 * @return the method
-	 */
-	public static Method GetMethod(String fileName, String functionSignature)
-	{
-		// get the method based on the methodsignature
-		List<Method> methods = GetMethodsOfFile(fileName);
-		
-		if (methods != null)
-		{
-			for (Method method : methods)
-			{
-				if (method.functionSignatureXml.equals(functionSignature))
-					return method;
-			}
-		}
-		
-		return null;
-	}
-	
-	/**
-	 * Calculate metrics for all metrics after finishing the collection
-	 */
-	public static void PostAction()
-	{
-		for (String file : methodsPerFile.keySet())
-		{
-			for (Method meth : methodsPerFile.get(file))
-			{
-				meth.SetLoc();
-				meth.SetNegationCount();
-				meth.SetNumberOfFeatureConstantsNonDup();
-				meth.SetNumberOfFeatureLocations();
-				meth.SetNestingSum();
-			}
-		}
-	}
-	
-	/**
-	 * Serialize the features into a xml representation
-	 *
-	 * @return A xml representation of this object.
-	 */
-	public static String SerializeMethods()
-	{
-		for (String key : methodsPerFile.keySet())
-		{
-			for (Method meth : GetMethodsOfFile(key))
-			{
-				meth.loac.clear();
-			}
-		}
-		
-		XStream stream = new XStream();
-		String xmlFeatures = stream.toXML(methodsPerFile);
-		
-		return xmlFeatures;
-	}
-	
-	/**
-	 * Deserializes an xml string into the collection.
-	 *
-	 * @param xml the serialized xml representation
-	 */
-	@SuppressWarnings("unchecked")
-	public static void DeserialzeMethods(File xmlFile)
-	{
-		XStream stream = new XStream();
-		methodsPerFile = (Map<String, List<Method>>) stream.fromXML(xmlFile);
-	}
+    /**
+     * Instantiates a new method collection.
+     */
+    public MethodCollection() {
+        methodsPerFile = new LinkedHashMap<>();
+    }
+
+    /**
+     * Adds the method to file.
+     *
+     * @param fileName the name of the srcML source file (usually something like
+     *                 <code>&quot;alloc.c.xml&quot;</code>)
+     * @param method   the method
+     */
+    public void AddMethodToFile(String fileName, Method method) {
+        Map<String, Method> methods = findMethodsForFile(fileName);
+        if (methods == null) {
+            methods = new LinkedHashMap<>();
+            String fileKey = FileCollection.KeyFromFilePath(fileName);
+            methodsPerFile.put(fileKey, methods);
+        }
+        methods.put(method.functionSignatureXml, method);
+    }
+
+    /**
+     * Gets the methods of file.
+     *
+     * @param fileName the file name
+     * @return A possibly empty collection of the methods within the file. This
+     * collection should not be modified.
+     */
+    public Collection<Method> GetMethodsOfFile(String fileName) {
+        Map<String, Method> methods = findMethodsForFile(fileName);
+        if (methods != null)
+            return methods.values();
+        else return Collections.emptyList();
+    }
+
+    /**
+     * Gets the method of a file based on the function signature
+     *
+     * @param fileDesignator    a string denoting the source file. This can either be the name
+     *                          of the SrcML file or the key generated from this file name,
+     *                          pointing to the actual C file from which the SrcML was
+     *                          generated.
+     * @param functionSignature the function signature
+     * @return the method, if found, <code>null</code> otherwise
+     */
+    public Method FindMethod(String fileDesignator, String functionSignature) {
+        // get the method based on the method signature
+        Map<String, Method> methods = findMethodsForFile(fileDesignator);
+        if (methods != null) {
+            return methods.get(functionSignature);
+        }
+        return null;
+    }
+
+    private Map<String, Method> findMethodsForFile(String fileDesignator) {
+        String key = FileCollection.KeyFromFilePath(fileDesignator);
+        return methodsPerFile.get(key);
+    }
+
+    /**
+     * Calculate metrics for all metrics after finishing the collection
+     */
+    public void PostAction() {
+        for (Method meth : AllMethods()) {
+            meth.SetLoc();
+            meth.SetNegationCount();
+            meth.SetNumberOfFeatureConstantsNonDup();
+            meth.SetNumberOfFeatureLocations();
+            meth.SetNestingSum();
+        }
+    }
+
+    /**
+     * Serialize the features into a xml representation
+     *
+     * @return A xml representation of this object.
+     */
+    public String SerializeMethods() {
+        for (Method meth : AllMethods()) {
+            meth.loac.clear();
+        }
+        XStream stream = new XStream();
+        Map<String, Collection<Method>> methodsForSerialization = new LinkedHashMap<>();
+        for (Map.Entry<String, Map<String, Method>> e : methodsPerFile.entrySet()) {
+            String filename = e.getKey();
+            Map<String, Method> methodBySig = e.getValue();
+            List<Method> methodList = new ArrayList<>(methodBySig.values());
+            methodsForSerialization.put(filename, methodList);
+        }
+        String xmlFeatures = stream.toXML(methodsForSerialization);
+        return xmlFeatures;
+    }
+
+    public Iterable<Method> AllMethods() {
+        final Iterator<Map<String, Method>> methodsBySigIt = methodsPerFile.values().iterator();
+        return new Iterable<Method>() {
+            @Override
+            public Iterator<Method> iterator() {
+                return new Iterator<Method>() {
+                    Iterator<Method> methodsIt = Collections.emptyIterator();
+
+                    @Override
+                    public boolean hasNext() {
+                        return ensureMethodsIt().hasNext();
+                    }
+
+                    @Override
+                    public Method next() {
+                        return ensureMethodsIt().next();
+                    }
+
+                    private Iterator<Method> ensureMethodsIt() {
+                        if (!methodsIt.hasNext()) {
+                            while (methodsBySigIt.hasNext()) {
+                                Map<String, Method> methodsInNextFile = methodsBySigIt.next();
+                                if (!methodsInNextFile.isEmpty()) {
+                                    methodsIt = methodsInNextFile.values().iterator();
+                                    break;
+                                }
+                            }
+                        }
+                        return methodsIt;
+                    }
+
+                    @Override
+                    public void remove() {
+                        throw new UnsupportedOperationException();
+                    }
+                };
+            }
+        };
+    }
+
+    /**
+     * Deserializes an XML string into the collection.
+     *
+     * @param xmlFile File holding the serialized xml representation
+     */
+    public void deserializeMethods(File xmlFile) {
+        XStream stream = new XStream();
+        Map<String, List<Method>> deserializedMethods = (Map<String, List<Method>>) stream.fromXML(xmlFile);
+        for (Map.Entry<String, List<Method>> e : deserializedMethods.entrySet()) {
+            final Map<String, Method> methods = new LinkedHashMap<>();
+            methodsPerFile.put(e.getKey(), methods);
+            for (Method method : e.getValue()) {
+                methods.put(method.functionSignatureXml, method);
+            }
+        }
+    }
 }

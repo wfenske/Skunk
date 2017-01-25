@@ -1,12 +1,13 @@
 package de.ovgu.skunk.detection.detector;
 
+import org.apache.commons.io.FileUtils;
+
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.List;
 
-import org.apache.commons.io.FileUtils;
-
+//@formatter:off
 public class DetectionConfig {
 
     /**
@@ -14,7 +15,7 @@ public class DetectionConfig {
      * other features (1 = returns all features that are as big as the mean
      * value and bigger)
      */
-    public double Feature_MeanLofcRatio = -1000;
+    public double Feature_MeanLofcRatio = Double.NaN;
     public boolean Feature_MeanLofcRatio_Mand = false;
     public float Feature_MeanLofcRatio_Weight = 1;
 
@@ -22,7 +23,7 @@ public class DetectionConfig {
      * A ratio that defines the ratio between a feature lofc and the project loc
      * (1 = 100% of the code)
      */
-    public double Feature_ProjectLocRatio = -1000;
+    public double Feature_ProjectLocRatio = Double.NaN;
     public boolean Feature_ProjectLocRatio_Mand = false;
     public float Feature_ProjectLocRatio_Weight = 1;
 
@@ -30,7 +31,7 @@ public class DetectionConfig {
      * A ratio that defines the ratio between the amount of feature locations
      * for a feature to the amount of feature locations in the project
      */
-    public double Feature_NoFeatureConstantsRatio = -1000;
+    public double Feature_NoFeatureConstantsRatio = Double.NaN;
     public boolean Feature_NoFeatureConstantsRatio_Mand = false;
     public float Feature_NoFeatureConstantsRatio_Weight = 1;
 
@@ -53,7 +54,7 @@ public class DetectionConfig {
      * A ratio that defines the percentage of lofc to loc (of a method) (1 =
      * 100% of the code
      */
-    public double Method_LofcToLocRatio = -1000;
+    public double Method_LofcToLocRatio = Double.NaN;
     public boolean Method_LofcToLocRatio_Mand = false;
     public float Method_LofcToLocRatio_Weight = 1;
 
@@ -61,7 +62,7 @@ public class DetectionConfig {
      * A ratio that defines the percentage of loac to loc (of a method) (1 =
      * 100% of the code)
      */
-    public double Method_LoacToLocRatio = -1000;
+    public double Method_LoacToLocRatio = Double.NaN;
     public boolean Method_LoacToLocRatio_Mand = false;
     public float Method_LoacToLocRatio_Weight = -1;
 
@@ -102,7 +103,7 @@ public class DetectionConfig {
      * A ratio that defines the percentage of lofc to loc (of a method) (1 =
      * 100% of the code
      */
-    public double File_LofcToLocRatio = -1000;
+    public double File_LofcToLocRatio = Double.NaN;
     public boolean File_LofcToLocRatio_Mand = false;
     public float File_LofcToLocRatio_Weight = 1;
 
@@ -110,7 +111,7 @@ public class DetectionConfig {
      * A ratio that defines the percentage of loac to loc (of a method) (1 =
      * 100% of the code)
      */
-    public double File_LoacToLocRatio = -1000;
+    public double File_LoacToLocRatio = Double.NaN;
     public boolean File_LoacToLocRatio_Mand = false;
     public float File_LoacToLocRatio_Weight = -1;
 
@@ -120,8 +121,7 @@ public class DetectionConfig {
     public float File_NumberOfFeatureConstants_Weight = 1;
 
     /**
-     * The amount of feature constants (without duples) a method should have
-     * minimally
+     * The minimum number of feature constants (without duplicates) a method should have
      */
     public int File_NumberOfFeatureConstantsNonDup = -1;
     public boolean File_NumberOfFeatureConstantsNonDup_Mand = false;
@@ -200,7 +200,6 @@ public class DetectionConfig {
                 String[] split = line.split("=");
 
                 // get field by name
-                @SuppressWarnings("unchecked")
                 Class<DetectionConfig> thisClass = (Class<DetectionConfig>) this.getClass();
                 Field current = thisClass.getField(split[0]);
 
@@ -225,13 +224,13 @@ public class DetectionConfig {
 
         res += "[Feature-based Values]";
 
-        if (this.Feature_MeanLofcRatio != -1000)
+        if (!Double.isNaN(this.Feature_MeanLofcRatio))
             res += "\r\nRatio - LOFC to mean LOFC: " + this.Feature_MeanLofcRatio + "; mandatory="
                     + this.Feature_MeanLofcRatio_Mand;
-        if (this.Feature_ProjectLocRatio != -1000)
+        if (!Double.isNaN(this.Feature_ProjectLocRatio))
             res += "\r\nRatio - LOFC to LOC: " + this.Feature_ProjectLocRatio + "; mandatory="
                     + this.Feature_ProjectLocRatio_Mand;
-        if (this.Feature_NoFeatureConstantsRatio != -1000)
+        if (!Double.isNaN(this.Feature_NoFeatureConstantsRatio))
             res += "\r\nRatio - Feature Constants(FC) to all FC: " + this.Feature_MeanLofcRatio + "; mandatory="
                     + this.Feature_MeanLofcRatio_Mand;
         if (this.Feature_NumberOfCompilUnits != -1)
@@ -246,10 +245,10 @@ public class DetectionConfig {
 
         res += "\r\n\r\n[Method-based Values]";
 
-        if (this.Method_LofcToLocRatio != -1000)
+        if (!Double.isNaN(this.Method_LofcToLocRatio))
             res += "\r\nRatio - LOFC to LOC: " + this.Method_LofcToLocRatio + "; mandatory="
                     + this.Method_LofcToLocRatio_Mand;
-        if (this.Method_LoacToLocRatio != -1000)
+        if (!Double.isNaN(this.Method_LoacToLocRatio))
             res += "\r\nRatio - LOAC to LOC: " + this.Method_LoacToLocRatio + "; mandatory="
                     + this.Method_LoacToLocRatio_Mand;
         if (this.Method_NumberOfFeatureConstants != -1)
@@ -274,10 +273,10 @@ public class DetectionConfig {
 
         res += "\r\n\r\n[File-based Values]";
 
-        if (this.File_LofcToLocRatio != -1000)
+        if (!Double.isNaN(this.File_LofcToLocRatio))
             res += "\r\nRatio - LOFC to LOC: " + this.File_LofcToLocRatio + "; mandatory="
                     + this.File_LofcToLocRatio_Mand;
-        if (this.File_LoacToLocRatio != -1000)
+        if (!Double.isNaN(this.File_LoacToLocRatio))
             res += "\r\nRatio - LOAC to LOC: " + this.File_LoacToLocRatio + "; mandatory="
                     + this.File_LoacToLocRatio_Mand;
         if (this.File_NumberOfFeatureConstants != -1)
@@ -316,3 +315,4 @@ public class DetectionConfig {
         return this.configFilePath;
     }
 }
+//@formatter:on

@@ -1,73 +1,71 @@
 package de.ovgu.skunk.detection.main;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionGroup;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
-import org.apache.commons.cli.PatternOptionBuilder;
-
-import de.ovgu.skunk.detection.data.FeatureExpressionCollection;
+import de.ovgu.skunk.detection.data.Context;
 import de.ovgu.skunk.detection.data.FeatureReference;
-import de.ovgu.skunk.detection.data.FileCollection;
-import de.ovgu.skunk.detection.data.MethodCollection;
 import de.ovgu.skunk.detection.detector.DetectionConfig;
 import de.ovgu.skunk.detection.detector.Detector;
 import de.ovgu.skunk.detection.detector.SmellReason;
 import de.ovgu.skunk.detection.input.CppStatsFolderReader;
 import de.ovgu.skunk.detection.input.SrcMlFolderReader;
 import de.ovgu.skunk.detection.output.AnalyzedDataHandler;
-import de.ovgu.skunk.detection.output.ProcessedDataHandler;
+import org.apache.commons.cli.*;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * Skunk main class
- * 
- * @author wfenske
  *
+ * @author wfenske
  */
 public class Skunk {
-
     private static final char OPT_HELP = 'h';
     private static final char OPT_SAVE_INTERMEDIATE = 'm';
     private static final char OPT_SOURCE = 's';
     private static final char OPT_PROCESSED = 'p';
     private static final char OPT_CONFIG = 'c';
-
-    /** The code smell configuration. */
+    /**
+     * The code smell configuration.
+     */
     private DetectionConfig conf = null;
 
-    /** The path of the source folder. */
-    private String sourcePath = null;
+    private Context ctx = null;
 
-    /** A flag that defines, if intermediate formats will be saved. */
-    public boolean saveIntermediate = false;
+    /**
+     * The path of the source folder.  Mutually exclusive with {@link processedDataDir}.
+     */
+    private Optional<String> sourcePath = Optional.empty();
+
+    /**
+     * Directory from which preprocessed data will be loaded.  Mutually exclusive with {@link sourcePath}.
+     */
+    private Optional<String> processedDataDir = Optional.empty();
+    /**
+     * A flag that defines if intermediate formats will be saved.
+     */
+    private boolean saveIntermediate = false;
 
     /**
      * The main method.
      *
-     * @param args
-     *            the arguments
+     * @param args the command line arguments
      */
     public static void main(String[] args) {
         new Skunk().run(args);
     }
 
     private void run(String[] args) {
-        // Initialize Components
-        FeatureExpressionCollection.Initialize();
-        MethodCollection.Initialize();
-        FileCollection.Initialize();
-
-        // gather input
+        String cwd;
+        try {
+            cwd = new java.io.File(".").getCanonicalPath();
+        } catch (IOException e1) {
+            cwd = System.getProperty("user.dir");
+        }
+        System.out.println("Starting Skunk in  `" + cwd + "'.");
         try {
             parseCommandLineArgs(args);
         } catch (UsageError ue) {
@@ -87,64 +85,61 @@ public class Skunk {
             System.exit(1);
         }
 
-        if (sourcePath != null && !sourcePath.isEmpty()) {
+        ctx = new Context(conf);
+
+        if (sourcePath.isPresent()) {
             // process necessary csv files in project folder
-            CppStatsFolderReader cppReader = new CppStatsFolderReader(sourcePath);
+            CppStatsFolderReader cppReader = new CppStatsFolderReader(ctx, sourcePath.get());
             cppReader.ProcessFiles();
-
             // process srcML files
-            SrcMlFolderReader mlReader = new SrcMlFolderReader();
+            SrcMlFolderReader mlReader = new SrcMlFolderReader(ctx);
             mlReader.ProcessFiles();
-
             // do post actions
-            MethodCollection.PostAction();
-            FileCollection.PostAction();
-
+            ctx.functions.PostAction();
+            ctx.files.PostAction();
             // save processed data
-            if (saveIntermediate)
-                ProcessedDataHandler.SaveProcessedData();
+            if (saveIntermediate) ctx.processedDataHandler.SaveProcessedData();
+        } else if (processedDataDir.isPresent()) {
+            ctx.processedDataHandler.LoadProcessedData(processedDataDir.get());
+        } else {
+            throw new IllegalStateException("Exactly one of --sourcePath or --processedData must be specified!");
         }
 
         // display loc, loac, #feat, NOFL and NOFC
         System.out.println();
-        System.out.println("LOC: " + FeatureExpressionCollection.GetLoc());
-        System.out.println("Number of features: " + FeatureExpressionCollection.GetCount());
+        System.out.println("LOC: " + ctx.featureExpressions.GetLoc());
+        System.out.println("Number of features: " + ctx.featureExpressions.GetCount());
         System.out.println("Number of feature constant references: "
-                + FeatureExpressionCollection.numberOfFeatureConstantReferences);
-
+                + ctx.featureExpressions.numberOfFeatureConstantReferences);
         int loac = 0;
         int nofl = 0;
-        for (de.ovgu.skunk.detection.data.File f : FileCollection.Files) {
+        for (de.ovgu.skunk.detection.data.File f : ctx.files.AllFiles()) {
             loac += f.GetLinesOfAnnotatedCode();
             nofl += f.numberOfFeatureLocations;
         }
-
         System.out.printf("LOAC: %d (%.0f%% of all lines of code)\n", loac,
-                (loac * 100.0) / FeatureExpressionCollection.GetLoc());
+                (loac * 100.0) / ctx.featureExpressions.GetLoc());
         System.out.println("NOFL: " + nofl);
-
         // run detection with current configuration (if present)
         if (conf != null) {
-            Detector detector = new Detector(conf);
+            Detector detector = new Detector(ctx);
             Map<FeatureReference, List<SmellReason>> res = detector.Perform();
-
-            AnalyzedDataHandler presenter = new AnalyzedDataHandler(conf);
+            AnalyzedDataHandler presenter = new AnalyzedDataHandler(ctx);
             presenter.SaveTextResults(res);
             presenter.SaveCsvResults();
         }
+        System.out.println("Exiting Skunk.");
     }
 
     /**
      * Analyze input to decide what to do during runtime
      *
-     * @param args
-     *            the input arguments
+     * @param args the input arguments
      */
     private void parseCommandLineArgs(String[] args) {
         CommandLineParser parser = new DefaultParser();
         Options fakeOptionsForHelp = makeOptions(true);
         Options actualOptions = makeOptions(false);
-
         CommandLine line;
         try {
             CommandLine dummyLine = parser.parse(fakeOptionsForHelp, args);
@@ -164,12 +159,10 @@ public class Skunk {
             System.exit(1);
             return;
         }
-
         // --config=... get the path to the code smell configuration
         if (line.hasOption(OPT_CONFIG)) {
             String configPath = line.getOptionValue('c');
             File fConfig = new File(configPath);
-
             if (fConfig.exists() && !fConfig.isDirectory()) {
                 try {
                     conf = new DetectionConfig(configPath);
@@ -181,17 +174,13 @@ public class Skunk {
                 throw new UsageError("The configuration file, " + configPath + ", does not exist or is a directory.");
             }
         }
-
         // Get the input (--source= or --processed= option)
         if (line.hasOption(OPT_SOURCE)) {
-
             String path = line.getOptionValue(OPT_SOURCE);
-
             try {
                 File fSource = new File(path);
-
                 if (fSource.exists() && fSource.isDirectory()) {
-                    sourcePath = path;
+                    sourcePath = Optional.of(path);
                 } else {
                     throw new UsageError("The source path, " + path + ", does not exist or is not a directory.");
                 }
@@ -199,16 +188,15 @@ public class Skunk {
                 throw new RuntimeException("Error reading source path, " + path, e);
             }
         } else if (line.hasOption(OPT_PROCESSED)) {
-            ProcessedDataHandler.LoadProcessedData(line.getOptionValue(OPT_PROCESSED));
+            this.processedDataDir = Optional.of(line.getOptionValue(OPT_PROCESSED));
         } else {
             throw new UsageError(
                     "Either need to set a source folder (--source=DIR) or a processed data folder (--processed=DIR)!");
         }
-
         // --save-intermediate
         if (line.hasOption(OPT_SAVE_INTERMEDIATE)) {
             saveIntermediate = true;
-            if (this.sourcePath == null || this.sourcePath.isEmpty()) {
+            if (!this.sourcePath.isPresent()) {
                 System.err.println("Save intermdiate was requested (option `-" + OPT_SAVE_INTERMEDIATE
                         + "'), but no source path has been specified (option `-" + OPT_SOURCE
                         + "). Intermediates will NOT be saved.");
@@ -265,12 +253,11 @@ public class Skunk {
     private String progName() {
         return this.getClass().getSimpleName();
     }
-
 }
 
 class UsageError extends RuntimeException {
     /**
-     * 
+     *
      */
     private static final long serialVersionUID = 1L;
 

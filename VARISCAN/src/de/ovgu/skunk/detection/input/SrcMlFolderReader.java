@@ -1,224 +1,317 @@
 package de.ovgu.skunk.detection.input;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.Map;
-
+import de.ovgu.skunk.detection.data.*;
 import org.apache.log4j.Logger;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
-import de.ovgu.skunk.detection.data.Feature;
-import de.ovgu.skunk.detection.data.FeatureExpressionCollection;
-import de.ovgu.skunk.detection.data.FeatureReference;
-import de.ovgu.skunk.detection.data.FileCollection;
-import de.ovgu.skunk.detection.data.MethodCollection;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * The Class SrcMlFolderReader.
  */
 public class SrcMlFolderReader {
-	private static Logger log = Logger.getLogger(SrcMlFolderReader.class);
+    private static Logger log = Logger.getLogger(SrcMlFolderReader.class);
+    private final Context ctx;
+    Map<String, Document> srcmlFilesByFileKey = new HashMap<>();
 
-	Map<String, Document> map = new HashMap<>();
+    /**
+     * Instantiates a new srcML folder reader.
+     *
+     * @param ctx
+     */
+    public SrcMlFolderReader(Context ctx) {
+        this.ctx = ctx;
+    }
 
-	/**
-	 * Instantiates a new srcmlfolderreader.
-	 */
-	public SrcMlFolderReader() {
-	}
+    /**
+     * Process files to get metrics from srcMl
+     */
+    public void ProcessFiles() {
+        log.info("Processing SrcML files ...");
+        readAllSrcMlDocs();
+        readAllFunctions();
+        processFeatureLocations();
+        log.info("Done processing SrcML files.");
+    }
 
-	/**
-	 * Process files to get metrics from srcMl
-	 */
-	public void ProcessFiles() {
-		System.out.println();
-		System.out.print("Processing SrcML files ...");
+    private void processFeatureLocations() {
+        // go through each feature location and calculate granularity
+        for (Feature feat : ctx.featureExpressions.GetFeatures()) {
+            for (FeatureReference ref : feat.getReferences()) {
+                this.processFeatureReference(ref);
+            }
+        }
+    }
 
-		// go through each feature location and calculate granularity
-		for (Feature feat : FeatureExpressionCollection.GetFeatures()) {
-			for (FeatureReference loc : feat.getConstants()) {
-				this.processFileFromLocations(loc);
-			}
-		}
+    private void readAllSrcMlDocs() {
+        final Collection<File> allFiles = ctx.files.AllFiles();
+        int processed = 0;
+        int numAllFiles = allFiles.size();
+        for (File file : allFiles) {
+            readAndRememberSrcmlFile(file.filePath);
+            if ((++processed) % 10 == 0) {
+                log.info("Parsed SrcML file " + processed + "/" + numAllFiles + " (" + (numAllFiles - processed)
+                        + " to go).");
+            }
+        }
+    }
 
-		System.out.println(" done.");
-	}
+    private void readAndRememberSrcmlFile(String filePath) {
+        try (InputStream inputStream = new ByteArrayInputStream(getFileBytes(filePath))) {
+            readAndRememberSrcmlFile(inputStream, filePath);
+        } catch (IOException e) {
+            throw new RuntimeException("I/O exception closing srcml file " + filePath, e);
+        }
+    }
 
-	/**
-	 * Calculate granularity of the feature location by checking parent nodes
-	 *
-	 * @param loc
-	 *            the feature location
-	 */
-	private void processFileFromLocations(FeatureReference loc) {
-		Document doc = null;
-		// Get all lines of the xml and open a positional xml reader
-		if (!map.containsKey(loc.filePath)) {
-			InputStream fileInput = new ByteArrayInputStream(getFileString(loc.filePath).getBytes());
-			try {
-				doc = PositionalXmlReader.readXML(fileInput);
-			} catch (IOException e) {
-				throw new RuntimeException("I/O exception reading stream of file " + loc.filePath, e);
-			} catch (SAXException e) {
-				throw new RuntimeException("Cannot parse file " + loc.filePath, e);
-			}
-			try {
-				fileInput.close();
-			} catch (IOException e) {
-				// we don't care if file closing fails
-			}
-			map.put(loc.filePath, doc);
-		} else {
-			doc = map.get(loc.filePath);
-		}
+    public Document readAndRememberSrcmlFile(InputStream inputStream, String filePath) {
+        String filePathKey = ctx.files.KeyFromFilePath(filePath);
+        Document doc = readSrcmlFile(inputStream, filePath);
+        srcmlFilesByFileKey.put(filePathKey, doc);
+        return doc;
+    }
 
-		// Assign to file
-		de.ovgu.skunk.detection.data.File file = FileCollection.GetOrAddFile(loc.filePath);
-		file.AddFeatureConstant(loc);
+    /**
+     * Calculate granularity of the feature location by checking parent nodes
+     *
+     * @param featureRef the reference to a feature constant
+     */
+    private void processFeatureReference(FeatureReference featureRef) {
+        final String filePath = featureRef.filePath;
+        final String filePathKey = ctx.files.KeyFromFilePath(filePath);
+        Document doc = srcmlFilesByFileKey.get(filePathKey);
+        // Get all lines of the xml and open a positional xml reader
+        if (doc == null) {
+            throw new RuntimeException("Doc for " + filePath + " is missing.");
+        }
+        // Assign to file
+        File file = ctx.files.InternFile(filePath);
+        file.AddFeatureConstant(featureRef);
+        Node correspondingCppDirective = findCppDirectiveForFeatureLocation(doc, featureRef);
+        if (correspondingCppDirective != null) {
+            // calculate the granularity by checking each sibling node
+            // from start to end of the annotation
+            this.calculateGranularityOfFeatureConstantReference(featureRef, correspondingCppDirective);
+            // assign this location to its corresponding method
+            this.assignFeatureConstantReferenceToMethod(featureRef, correspondingCppDirective);
+        } else {
+            log.warn("Failed to find the CPP directive for feature constant reference " + featureRef);
+        }
+    }
 
-		// go through each directive and find the directive of the specific
-		// location by using the start position
-		NodeList directives = doc.getElementsByTagName("cpp:directive");
-		for (int i = 0; i < directives.getLength(); i++) {
-			Node current = directives.item(i);
-			if (Integer.parseInt((String) current.getUserData("lineNumber")) == loc.start + 1) {
-				// parent contains the if/endif values
+    private Node findCppDirectiveForFeatureLocation(Document doc, FeatureReference featureRef) {
+        // go through each directive and find the directive of the specific
+        // location by using the start position
+        NodeList directives = doc.getElementsByTagName("cpp:directive");
+        for (int i = 0; i < directives.getLength(); i++) {
+            Node current = directives.item(i);
+            if (Integer.parseInt((String) current.getUserData("lineNumber")) == featureRef.start + 1) {
+                // parent contains the if/endif values
+                return current.getParentNode();
+            }
+        }
+        return null;
+    }
 
-				current = current.getParentNode();
-				// calculate the granularty by checking each sibling node
-				// from start to end of the annotation
-				this.calculateGranularityOfConstant(loc, current);
+    private Document readSrcmlFile(String filePath) {
+        try (InputStream inputStream = new ByteArrayInputStream(getFileBytes(filePath))) {
+            return readSrcmlFile(inputStream, filePath);
+        } catch (IOException e) {
+            throw new RuntimeException("I/O exception closing srcml file " + filePath, e);
+        }
+    }
 
-				// assign this location to its corresponding method
-				this.assignFeatureConstantToMethod(loc, current);
+    public static Document readSrcmlFile(InputStream fileInput, String filePath) {
+        try {
+            return PositionalXmlReader.readXML(fileInput);
+        } catch (IOException e) {
+            throw new RuntimeException("I/O exception reading stream of file " + filePath, e);
+        } catch (SAXException e) {
+            throw new RuntimeException("Cannot parse file " + filePath, e);
+        }
+    }
 
-				break;
-			}
-		}
-	}
+    private void calculateGranularityOfFeatureConstantReference(FeatureReference featureRef, Node current) {
+        // check sibling nodes until a granularity defining tag is found or
+        // until the end of the annotation
+        Node sibling = current;
+        while (sibling != null && Integer.parseInt((String) sibling.getUserData("lineNumber")) <= featureRef.end + 1) {
+            // set granularity and try to assign a discipline
+            featureRef.SetGranularity(sibling);
+            featureRef.SetDiscipline(sibling);
+            // text nodes do not contain line numbers --> next until not #text
+            sibling = sibling.getNextSibling();
+            while (sibling != null && sibling.getNodeName().equals("#text"))
+                sibling = sibling.getNextSibling();
+        }
+    }
 
-	private void calculateGranularityOfConstant(FeatureReference loc, Node current) {
-		// check sibling nodes until a granularity defining tag is found or
-		// until the end of the annotation
-		Node sibling = current;
+    /**
+     * Gets the file contents as a byte stream.
+     *
+     * @param filePath the file path
+     * @return the bytes in the file
+     */
+    private static byte[] getFileBytes(String filePath) {
+        try {
+            return Files.readAllBytes(Paths.get(filePath));
+        } catch (IOException e) {
+            throw new RuntimeException("I/O exception reading contents of file " + filePath, e);
+        }
+    }
 
-		while (sibling != null && Integer.parseInt((String) sibling.getUserData("lineNumber")) <= loc.end + 1) {
-			// set granularity and try to assign a discpline
-			loc.SetGranularity(sibling);
-			loc.SetDiscipline(sibling);
+    /**
+     * Assign feature constant reference to method.
+     *
+     * @param featureRef     the feature constant reference
+     * @param annotationNode the annotation node where the reference occurred
+     */
+    private void assignFeatureConstantReferenceToMethod(FeatureReference featureRef, Node annotationNode) {
+        // check parent nodes of the annotation until it is of type
+        // function/unit
+        Node funcNode = findParentFunctionNode(annotationNode);
+        if (funcNode == null) {
+            log.debug("Feature reference is not part of a function definition. Treated as a top-level reference: "
+                    + featureRef);
+            return;
+        }
+        String filePath = featureRef.filePath;
+        String fileDesignator = ctx.files.KeyFromFilePath(filePath);
+        // get or create method
+        Method method = parseAndInternMethod(funcNode, filePath, fileDesignator);
+        // add location to the method
+        method.AddFeatureConstant(featureRef);
+    }
 
-			// text nodes do not contain line numbers --> next until not #text
-			sibling = sibling.getNextSibling();
-			while (sibling != null && sibling.getNodeName().equals("#text"))
-				sibling = sibling.getNextSibling();
-		}
-	}
+    private Node findParentFunctionNode(Node annotationNode) {
+        Node parent = annotationNode.getParentNode();
+        while (!parent.getNodeName().equals("function")) {
+            // if parent node is unit, it does not belong to a function
+            if (parent.getNodeName().equals("unit")) {
+                return null;
+            }
+            parent = parent.getParentNode();
+        }
+        return parent;
+    }
 
-	/**
-	 * Gets the file string.
-	 *
-	 * @param filePath
-	 *            the file path
-	 * @return the file string
-	 */
-	private static String getFileString(String filePath) {
-		try {
-			byte[] encoded = Files.readAllBytes(Paths.get(filePath));
-			return new String(encoded, Charset.forName(("UTF-8")));
-		} catch (IOException e) {
-			throw new RuntimeException("I/O exception reading contents of file " + filePath, e);
-		}
-	}
+    /**
+     * <p>Parses the function definition contained within the SrcML XML node,
+     * creates a Skunk Method object from it and stores it properly in the
+     * respective collections that need to know about the function.</p>
+     * <p>
+     * <p>What we want to parse here, has the following XML form.</p>
+     *
+     * @formatter:off <pre><function><type><name>int</name></type> <name>os_init_job_environment</name><parameter_list>(<param><decl><type><name>server_rec</name> *</type><name>server</name></decl></param>, <param><decl><type><specifier>const</specifier> <name>char</name> *</type><name>user_name</name></decl></param>, <param><decl><type><name>int</name></type> <name>one_process</name></decl></param>)</parameter_list>
+     * ... </function>
+     * </pre>
+     * <p>
+     * The original C code looks like this:
+     * <p>
+     * <pre>
+     * int os_init_job_environment(server_rec *server, const char *user_name, int one_process) { ... }
+     *
+     * @formatter:on
+     *
+     * @param funcNode
+     * @param filePath
+     * @param fileDesignator
+     * @return the method parsed from this Node, never <code>null</code>
+     */
+    private Method parseAndInternMethod(Node funcNode, String filePath, String fileDesignator) {
+        String functionSignature = parseFunctionSignature(funcNode);
+        Method method = ctx.functions.FindMethod(fileDesignator, functionSignature);
+        if (method == null) {
+            method = parseFunctionUsingSignature(funcNode, filePath, fileDesignator, functionSignature);
+            ctx.functions.AddMethodToFile(fileDesignator, method);
+        }
+        ctx.files.InternFunctionIntoExistingFile(fileDesignator, method);
+        return method;
+    }
 
-	/**
-	 * Assign feature constant to method.
-	 *
-	 * @param constant
-	 *            the feature constant
-	 * @param annotationNode
-	 *            the annotation node
-	 */
-	private void assignFeatureConstantToMethod(FeatureReference constant, Node annotationNode) {
-		// check parent nodes of the annotation until it is of type
-		// function/unit
-		Node parent = annotationNode.getParentNode();
-		while (!parent.getNodeName().equals("function") && !parent.getNodeName().equals("unit")) {
-			parent = parent.getParentNode();
-		}
+    public Method parseFunction(Node funcNode, String filePath) {
+        String fileDesignator = ctx.files.KeyFromFilePath(filePath);
+        return parseFunction(funcNode, filePath, fileDesignator);
+    }
 
-		// if parent node is unit, it does not belong to a function
-		if (parent.getNodeName().equals("unit"))
-			return;
-		else {
-			// get function signature
-			String functionSignature = this.createFunctionSignature(parent);
+    private Method parseFunction(Node funcNode, String filePath, String fileDesignator) {
+        String functionSignature = parseFunctionSignature(funcNode);
+        return parseFunctionUsingSignature(funcNode, filePath, fileDesignator, functionSignature);
+    }
 
-			// get or create method
-			de.ovgu.skunk.detection.data.Method method = MethodCollection.GetMethod(constant.filePath,
-					functionSignature);
+    private Method parseFunctionUsingSignature(Node funcNode, String filePath, String fileDesignator, String functionSignature) {
+        // Line number in the XML file.  Note, this count starts from 1, not from 0.
+        int xmlStartLoc = Integer.parseInt((String) funcNode.getUserData("lineNumber"));
+        // The srcML representation starts with a one-line XML declaration, which we subtract here.
+        int cStartLoc = xmlStartLoc - 1;
+        int len = countLines(funcNode.getTextContent());
+        return new Method(ctx, functionSignature, filePath, cStartLoc, len);
+    }
 
-			if (method == null) {
-				method = new de.ovgu.skunk.detection.data.Method(functionSignature,
-						Integer.parseInt((String) parent.getUserData("lineNumber")),
-						this.countLines(parent.getTextContent()));
-				MethodCollection.AddMethodToFile(constant.filePath, method);
-			}
+    private void readAllFunctions() {
+        log.debug("Parsing all functions in all files.");
+        for (File file : ctx.files.AllFiles()) {
+            readAllFunctionsInFile(file);
+        }
+    }
 
-			// add method to file
-			de.ovgu.skunk.detection.data.File file = FileCollection.GetFile(constant.filePath);
-			if (file != null)
-				file.AddMethod(method);
+    private void readAllFunctionsInFile(File file) {
+        log.debug("Parsing functions in file " + file);
+        String filePath = file.filePath;
+        String fileDesignator = ctx.files.KeyFromFilePath(filePath);
+        Document doc = srcmlFilesByFileKey.get(fileDesignator);
+        NodeList functions = doc.getElementsByTagName("function");
+        int numFunctions = functions.getLength();
+        log.debug("Found " + numFunctions + " functions in `" + fileDesignator + "'.");
+        for (int i = 0; i < numFunctions; i++) {
+            Node funcNode = functions.item(i);
+            parseAndInternMethod(funcNode, filePath, fileDesignator);
+        }
+    }
 
-			// add location to the method
-			method.AddFeatureConstant(constant);
+    /**
+     * Extracts the function signature from a SrcML XML function node
+     *
+     * @param functionNode the SrcML XML node containing the function definition
+     * @return the function's signature
+     */
+    public static String parseFunctionSignature(Node functionNode) {
+        // get the text content of the node (signature + method content),
+        // and remove method content until beginning of block
+        String nodeContent = functionNode.getTextContent();
+        final String noBodyResult;
+        final int openBraceIx = nodeContent.indexOf('{');
+        if (openBraceIx == -1) {
+            log.warn("Encountered strange function node (no opening `{' found): " + nodeContent);
+            noBodyResult = nodeContent;
+        } else {
+            noBodyResult = nodeContent.substring(0, openBraceIx);
+        }
+        // Squeeze multiple space signs into a single space
+        String collapsedSpace = noBodyResult.replaceAll("\\s+", " ");
+        return collapsedSpace.trim();
+    }
 
-		}
-
-	}
-
-	/**
-	 * Creates the function signature from the function node
-	 *
-	 * @param functionNode
-	 *            the function node
-	 * @return the string
-	 */
-	private String createFunctionSignature(Node functionNode) {
-		// get the whole text content of the node (signature + method content),
-		// and remove method content until beginning of block
-		String nodeContent = functionNode.getTextContent();
-		final String noBodyResult;
-		final int openBraceIx = nodeContent.indexOf('{');
-		if (openBraceIx == -1) {
-			log.warn("Encountered strange function node (no opening `{' found): " + nodeContent);
-			noBodyResult = nodeContent;
-		} else {
-			noBodyResult = nodeContent.substring(0, openBraceIx);
-		}
-
-		// clean signature
-		final String collapsedSpace = noBodyResult.replaceAll("\\s+", " ");
-		return collapsedSpace.trim();
-	}
-
-	/**
-	 * Count the amount of lines in a string.
-	 *
-	 * @param str
-	 *            the string
-	 * @return amount of lines
-	 */
-	private int countLines(String str) {
-		String[] lines = str.split("\r\n|\r|\n");
-		return lines.length;
-	}
-
+    /**
+     * Count the number of lines in a string. A line is interpreted to end at
+     * the first occurrence of either &quot;\r\n&quot;, &quot;\n&quot;, or
+     * &quot;\r\n&quot;.
+     *
+     * @param str the string
+     * @return number of lines
+     */
+    private static int countLines(String str) {
+        String[] lines = str.split("\r\n|\r|\n");
+        return lines.length;
+    }
 }
