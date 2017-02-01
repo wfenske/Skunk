@@ -17,7 +17,7 @@
       <sourceFolder url="file://$MODULE_DIR$/resources" isTestSource="false" />
     </content>
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="jdk" jdkName="JDK1.8" jdkType="JavaSDK" />
+    <orderEntry type="inheritedJdk" />
     <orderEntry type="library" exported="" name="CommonsCSV" level="project" />
     <orderEntry type="library" exported="" name="CommonsIO" level="project" />
     <orderEntry type="library" exported="" name="XMLPull" level="project" />
