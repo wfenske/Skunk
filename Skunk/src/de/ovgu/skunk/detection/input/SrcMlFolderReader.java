@@ -100,7 +100,7 @@ public class SrcMlFolderReader {
         Node correspondingCppDirective = findCppDirectiveForFeatureLocation(doc, featureRef);
         if (correspondingCppDirective != null) {
             // calculate the granularity by checking each sibling node
-            // from start to end of the annotation
+            // from start1 to end1 of the annotation
             this.calculateGranularityOfFeatureConstantReference(featureRef, correspondingCppDirective);
             // assign this location to its corresponding method
             this.assignFeatureConstantReferenceToMethod(featureRef, correspondingCppDirective);
@@ -111,7 +111,7 @@ public class SrcMlFolderReader {
 
     private Node findCppDirectiveForFeatureLocation(Document doc, FeatureReference featureRef) {
         // go through each directive and find the directive of the specific
-        // location by using the start position
+        // location by using the start1 position
         NodeList directives = doc.getElementsByTagName("cpp:directive");
         for (int i = 0; i < directives.getLength(); i++) {
             Node current = directives.item(i);
@@ -143,7 +143,7 @@ public class SrcMlFolderReader {
 
     private void calculateGranularityOfFeatureConstantReference(FeatureReference featureRef, Node current) {
         // check sibling nodes until a granularity defining tag is found or
-        // until the end of the annotation
+        // until the end1 of the annotation
         Node sibling = current;
         while (sibling != null && Integer.parseInt((String) sibling.getUserData("lineNumber")) <= featureRef.end + 1) {
             // set granularity and try to assign a discipline
@@ -254,8 +254,9 @@ public class SrcMlFolderReader {
         int xmlStartLoc = Integer.parseInt((String) funcNode.getUserData("lineNumber"));
         // The srcML representation starts with a one-line XML declaration, which we subtract here.
         int cStartLoc = xmlStartLoc - 1;
-        int len = countLines(funcNode.getTextContent());
-        return new Method(ctx, functionSignature, filePath, cStartLoc, len);
+        String textContent = funcNode.getTextContent();
+        int len = countLines(textContent);
+        return new Method(ctx, functionSignature, filePath, cStartLoc, len, textContent);
     }
 
     private void readAllFunctions() {
@@ -303,7 +304,7 @@ public class SrcMlFolderReader {
     }
 
     /**
-     * Count the number of lines in a string. A line is interpreted to end at
+     * Count the number of lines in a string. A line is interpreted to end1 at
      * the first occurrence of either &quot;\r\n&quot;, &quot;\n&quot;, or
      * &quot;\r\n&quot;.
      *

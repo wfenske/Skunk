@@ -33,8 +33,8 @@ public class CppStatsFeatureConstant {
      * @param entry    the entry
      * @param filePath the file path
      * @param type     the type
-     * @param start    the start
-     * @param end      the end
+     * @param start    the start1
+     * @param end      the end1
      * @param parent   the parent
      */
     public CppStatsFeatureConstant(Context ctx, String entry, String filePath, String type, int start, int end, CppStatsFeatureConstant parent) {
@@ -69,7 +69,7 @@ public class CppStatsFeatureConstant {
 
         // search for the corresponding feature expression and save information
         for (String featureName : this.featureExpressions) {
-            // end-1 = #endif does not belong to lines of code????
+            // end1-1 = #endif does not belong to lines of code????
             FeatureReference ref = new FeatureReference(this.filePath, this.start, this.end, stackSize,
                     this.notFlags.get(this.featureExpressions.indexOf(featureName)));
             ctx.featureExpressions.InternFeature(featureName).AddReference(ref);

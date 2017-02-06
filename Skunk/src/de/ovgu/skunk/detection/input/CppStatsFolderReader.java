@@ -84,7 +84,7 @@ public class CppStatsFolderReader {
                                 end, null);
                         if (constant.featureExpressions.size() != 0) constants.push(constant);
                     } else {
-                        // if end of top element is bigger than start, the
+                        // if end1 of top element is bigger than start1, the
                         // current element is nested in the top element --> push
                         // on stack
                         if (constants.peek().end > start) {
@@ -93,7 +93,7 @@ public class CppStatsFolderReader {
                             if (constant.featureExpressions.size() != 0) constants.push(constant);
                         } else {
                             // save feature constant if the endline of the top
-                            // element is lower than the curent start location
+                            // element is lower than the curent start1 location
                             while ((constants.size() > 0) && (constants.peek().end <= start))
                                 constants.pop().SaveFeatureConstantInformation(constants.size() + 1);
                             // item has to be put on stack, use top as reference

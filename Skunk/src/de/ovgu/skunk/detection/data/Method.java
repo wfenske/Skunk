@@ -17,7 +17,7 @@ public class Method {
             int cmp;
             cmp = f1.filePath.compareTo(f2.filePath);
             if (cmp != 0) return cmp;
-            cmp = f1.start - f2.start;
+            cmp = f1.start1 - f2.start1;
             if (cmp != 0) return cmp;
             return f1.functionSignatureXml.compareTo(f2.functionSignatureXml);
         }
@@ -25,17 +25,21 @@ public class Method {
 
     private final Context ctx;
     /**
+     * Source code of the functions, as returned from the srcml function node
+     */
+    private final String sourceCode;
+    /**
      * The function signature.
      */
     public String functionSignatureXml;
     /**
      * The first line of the function in the file, counted from 1.
      */
-    public int start;
+    public int start1;
     /**
      * The last line of the function in the file, counted from 1.
      */
-    public int end;
+    public int end1;
     /**
      * The lines of code of the method.
      */
@@ -82,19 +86,20 @@ public class Method {
     /**
      * Method.
      *
-     * @param signature the signature
-     * @param start     the start line of the function (first file in the file is counted as 1)
-     * @param loc       lenght of the function in lines of code
+     * @param signature  the signature
+     * @param start1     the start1 line of the function (first file in the file is counted as 1)
+     * @param loc        lenght of the function in lines of code
+     * @param sourceCode source code as returned from src2srcml
      */
-    public Method(Context ctx, String signature, String filePath, int start, int loc) {
+    public Method(Context ctx, String signature, String filePath, int start1, int loc, String sourceCode) {
         this.ctx = ctx;
         this.functionSignatureXml = signature;
-        this.start = start;
+        this.start1 = start1;
         this.loc = loc;
         this.nestingSum = 0;
         this.nestingDepthMax = 0;
-        // do not count start line while calculating the end
-        this.end = start + loc - 1;
+        // do not count start1 line while calculating the end1
+        this.end1 = start1 + loc - 1;
         // initialize loc
         this.lofc = 0;
         this.featureReferences = new LinkedHashMap<>();
@@ -103,6 +108,7 @@ public class Method {
         this.numberFeatureLocations = 0;
         this.negationCount = 0;
         this.filePath = filePath;
+        this.sourceCode = sourceCode;
     }
 
     /**
@@ -118,24 +124,24 @@ public class Method {
             // assign nesting depth values
             if (featureRef.nestingDepth > this.nestingDepthMax) this.nestingDepthMax = featureRef.nestingDepth;
             // calculate lines of feature code (if the feature is longer than
-            // the method, use the method end)
-            if (featureRef.end > this.end)
-                this.lofc += this.end - featureRef.start + 1;
+            // the method, use the method end1)
+            if (featureRef.end > this.end1)
+                this.lofc += this.end1 - featureRef.start + 1;
             else this.lofc += featureRef.end - featureRef.start + 1;
             de.ovgu.skunk.detection.data.File file = ctx.files.FindFile(featureRef.filePath);
             for (int current : file.emptyLines) {
-                if (featureRef.end > this.end) {
-                    if (current > featureRef.start && current < this.end) this.lofc--;
+                if (featureRef.end > this.end1) {
+                    if (current > featureRef.start && current < this.end1) this.lofc--;
                 } else if (current > featureRef.start && current < featureRef.end) this.lofc--;
             }
             // add lines of visibile annotated code (amount of loc that is
-            // inside annotations) until end of feature constant or end of
+            // inside annotations) until end1 of feature constant or end1 of
             // method
             for (int current = featureRef.start; current <= featureRef.end; current++) {
                 if (!(this.loac.contains(current))
                         && !ctx.files.FindFile(this.filePath).emptyLines.contains(current))
                     this.loac.add(current);
-                if (current == this.end) break;
+                if (current == this.end1) break;
             }
         }
     }
@@ -227,7 +233,7 @@ public class Method {
     public void SetLoc() {
         de.ovgu.skunk.detection.data.File file = ctx.files.FindFile(this.filePath);
         for (int empty : file.emptyLines) {
-            if (empty >= this.start && empty <= this.end) this.loc--;
+            if (empty >= this.start1 && empty <= this.end1) this.loc--;
         }
     }
 
@@ -238,7 +244,19 @@ public class Method {
     @Override
     public String toString() {
         return String.format("Function [%s /* %s:%d,%d */]", functionSignatureXml, FilePathForDisplay(),
-                start, end);
+                start1, end1);
+    }
+
+    public String sourceCodeWithLineNumbers() {
+        String[] lines = sourceCode.split("\n");
+        StringBuilder r = new StringBuilder();
+        int lineNo = start1;
+        for (int iLine = 0; iLine < lines.length; iLine++, lineNo++) {
+            r.append(String.format("% 5d: ", lineNo));
+            r.append(lines[iLine]);
+            r.append("\n");
+        }
+        return r.toString();
     }
 
     /*
@@ -269,5 +287,12 @@ public class Method {
             if (other.functionSignatureXml != null) return false;
         } else if (!functionSignatureXml.equals(other.functionSignatureXml)) return false;
         return true;
+    }
+
+    /**
+     * @return Source code of the function as parsed by src2srcml
+     */
+    public String getSourceCode() {
+        return sourceCode;
     }
 }

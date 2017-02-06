@@ -82,8 +82,8 @@ public class AnalyzedDataHandler {
                 return -1;
             }
             if (f2.inMethod == null) return 1;
-            int s1 = f1.inMethod.start;
-            int s2 = f2.inMethod.start;
+            int s1 = f1.inMethod.start1;
+            int s2 = f2.inMethod.start1;
             return Integer.compare(s1, s2);
         }
     };
@@ -191,14 +191,14 @@ public class AnalyzedDataHandler {
     }
 
     /**
-     * Sorts the result per file and start and adds it to the resulting file
+     * Sorts the result per file and start1 and adds it to the resulting file
      *
      * @param results the results
      * @return the location results
      */
     private String getFileSortedRestults(Map<FeatureReference, List<SmellReason>> results) {
         String res = ctx.config.toString() + "\r\n\r\n\r\n\r\n\r\n\r\n";
-        // sort the keys after featurename, filepath and start
+        // sort the keys after featurename, filepath and start1
         List<FeatureReference> sortedKeys = new ArrayList<>(results.keySet());
         Collections.sort(sortedKeys, new ComparatorChain<>(FEATURECONSTANT_FILEPATH_COMPARATOR,
                 FEATURECONSTANT_START_COMPARATOR));
@@ -226,7 +226,7 @@ public class AnalyzedDataHandler {
      */
     private String getFeatureSortedResults(Map<FeatureReference, List<SmellReason>> results) {
         String res = ctx.config.toString() + "\r\n\r\n\r\n\r\n\r\n";
-        // sort the keys after featurename, filepath and start
+        // sort the keys after featurename, filepath and start1
         List<FeatureReference> sortedKeys = new ArrayList<>(results.keySet());
         Collections.sort(sortedKeys, new ComparatorChain<>(FEATURECONSTANT_FEATURENAME_COMPARATOR,
                 FEATURECONSTANT_FILEPATH_COMPARATOR, FEATURECONSTANT_START_COMPARATOR));

@@ -1,29 +1,43 @@
 package de.ovgu.skunk.detection.data;
 
+import org.w3c.dom.Node;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-
-import org.w3c.dom.Node;
 
 /**
  * A reference to a feature, i.e., a place, such as the condition of an
  * <code>#if</code> directive, that mentions a feature by name.
  */
 public class FeatureReference implements Comparable<FeatureReference> {
-    /** The corresponding feature on this location. */
+    /**
+     * The corresponding feature on this location.
+     */
     public Feature feature;
-    /** The file path. */
+    /**
+     * The file path.
+     */
     public String filePath;
-    /** The unique ID of this feature reference. */
+    /**
+     * The unique ID of this feature reference.
+     */
     public UUID id;
-    /** The start position. */
+    /**
+     * The start1 position.
+     */
     public int start;
-    /** The end position. */
+    /**
+     * The end1 position.
+     */
     public int end;
-    /** The nesting depth. */
+    /**
+     * The nesting depth.
+     */
     public int nestingDepth;
-    /** The negation flag. */
+    /**
+     * The negation flag.
+     */
     public Boolean notFlag;
     /**
      * The list of features of combined feature constants in a location (i.e.
@@ -41,16 +55,11 @@ public class FeatureReference implements Comparable<FeatureReference> {
     /**
      * Instantiates a new featur reference.
      *
-     * @param filePath
-     *            the file path
-     * @param start
-     *            the start
-     * @param end
-     *            the end
-     * @param nestingDepth
-     *            the nesting depth
-     * @param notFlag
-     *            the not flag
+     * @param filePath     the file path
+     * @param start        the start1
+     * @param end          the end1
+     * @param nestingDepth the nesting depth
+     * @param notFlag      the not flag
      */
     public FeatureReference(String filePath, int start, int end, int nestingDepth, Boolean notFlag) {
         this.filePath = filePath;
@@ -66,7 +75,7 @@ public class FeatureReference implements Comparable<FeatureReference> {
 
     /**
      * @return <code>true</code> if the location of the feature constant also
-     *         references other features; <code>false</code> otherwise
+     * references other features; <code>false</code> otherwise
      */
     public Boolean IsCombined() {
         if (combinedWith.size() == 0)
@@ -77,8 +86,7 @@ public class FeatureReference implements Comparable<FeatureReference> {
     /**
      * Sets the granularity based on the current nodeName
      *
-     * @param node
-     *            the node name
+     * @param node the node name
      */
     public void SetGranularity(Node node) {
         // decide the granularity of the node based on the nodeName
@@ -183,8 +191,7 @@ public class FeatureReference implements Comparable<FeatureReference> {
      * Sets the discipline of the feature constant based on node inside the
      * feature (e.g, a FeatureLocation containing one case is undisciplined)
      *
-     * @param node
-     *            a node inside the feature constant
+     * @param node a node inside the feature constant
      */
     public void SetDiscipline(Node node) {
         // if not notdefined or disciplined, check for undisciplined node
@@ -253,7 +260,7 @@ public class FeatureReference implements Comparable<FeatureReference> {
 
     @Override
     public String toString() {
-        return String.format("FeatureReference [filePath=%s, feature=%s, start=%s, end=%s]", filePath, feature, start,
+        return String.format("FeatureReference [filePath=%s, feature=%s, start1=%s, end1=%s]", filePath, feature, start,
                 end);
     }
 }

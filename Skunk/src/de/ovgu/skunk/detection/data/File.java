@@ -134,12 +134,12 @@ public class File {
             // assign nesting depth values
             if (constant.nestingDepth > this.nestingDepthMax) this.nestingDepthMax = constant.nestingDepth;
             // calculate lines of feature code (if the feature is longer than
-            // the method, use the method end)
+            // the method, use the method end1)
             this.lofc += constant.end - constant.start + 1;
             for (int current : this.emptyLines)
                 if (current > constant.start && current < constant.end) this.lofc--;
             // add lines of visibile annotated code (amount of loc that is
-            // inside annotations) until end of feature constant or end of
+            // inside annotations) until end1 of feature constant or end1 of
             // method
             for (int current = constant.start; current <= constant.end; current++) {
                 if (!(this.loac.contains(current)) && !(this.emptyLines.contains(current))) this.loac.add(current);
