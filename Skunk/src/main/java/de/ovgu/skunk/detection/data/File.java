@@ -93,7 +93,7 @@ public class File {
         try {
             int index = 0;
             boolean multiline = false;
-            for (String line : FileUtils.readLines(file)) {
+            for (String line : de.ovgu.skunk.util.FileUtils.readLines(file)) {
                 // TODO Gucken ob hier ein caller auf ne methode ist --> hashmap
                 // speichern
                 if (multiline) {

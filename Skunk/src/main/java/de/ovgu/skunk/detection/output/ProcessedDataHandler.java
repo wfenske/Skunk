@@ -2,7 +2,6 @@ package de.ovgu.skunk.detection.output;
 
 import de.ovgu.skunk.detection.data.Context;
 import de.ovgu.skunk.detection.data.FeatureExpressionCollection;
-import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -83,7 +82,7 @@ public class ProcessedDataHandler {
                                 case generalPath: {
                                     // read text file, first line is for
                                     // featureexpressioncollection
-                                    List<String> lines = FileUtils.readLines(current);
+                                    List<String> lines = de.ovgu.skunk.util.FileUtils.readLines(current);
                                     String general = lines.get(0);
                                     // set unserializable values
                                     String[] split = general.split("=")[1].split(";");

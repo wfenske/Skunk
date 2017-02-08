@@ -21,7 +21,7 @@ maven_repo=$HOME/.m2/repository
 add_to_cp "${maven_repo}"/commons-cli/commons-cli/1.3/commons-cli-1.3.jar
 
 # commons-csv
-add_to_cp "${maven_repo}"/org/apache/commons/commons-csv/1.1/commons-csv-1.1.jar
+add_to_cp "${maven_repo}"/org/apache/commons/commons-csv/1.4/commons-csv-1.4.jar
 
 # commons-io
 add_to_cp "${maven_repo}"/commons-io/commons-io/2.4/commons-io-2.4.jar
@@ -37,7 +37,7 @@ add_to_cp "${maven_repo}"/com/thoughtworks/xstream/xstream/1.4.9/xstream-1.4.9.j
 
 # Log4j
 add_to_cp "${maven_repo}"/log4j/log4j/1.2.14/log4j-1.2.14.jar
-add_to_cp "${maven_repo}"/org/apache/logging/log4j/log4j-api/2.1/log4j-api-2.1.jar
+#add_to_cp "${maven_repo}"/org/apache/logging/log4j/log4j-api/2.1/log4j-api-2.1.jar
 
 # Skunk class files
 add_to_cp "${skunk_dir}"/target/classes

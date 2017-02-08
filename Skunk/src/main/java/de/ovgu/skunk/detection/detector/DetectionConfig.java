@@ -1,7 +1,5 @@
 package de.ovgu.skunk.detection.detector;
 
-import org.apache.commons.io.FileUtils;
-
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -169,7 +167,7 @@ public class DetectionConfig {
         this.configFilePath = pathToFile;
 
         // read all lines of the configuration file
-        List<String> lines = FileUtils.readLines(new File(pathToFile));
+        List<String> lines = de.ovgu.skunk.util.FileUtils.readLines(new File(pathToFile));
 
         for (String line : lines) {
             // "#" are commentaries
@@ -185,12 +183,12 @@ public class DetectionConfig {
 
                     if (split[1].equals("mandatory"))
                         mandatory = true;
-                    else if (split[1].matches("(\\d)+(\\.)(\\d)+))"))
+                    else if (split[1].matches("(\\d)+(\\.)(\\d)+"))
                         weight = Float.parseFloat(split[1].trim());
 
                     if (split.length == 3 && split[2].equals("mandatory"))
                         mandatory = true;
-                    else if (split.length == 3 && split[2].matches("(\\d)+(\\.)(\\d)+))"))
+                    else if (split.length == 3 && split[2].matches("(\\d)+(\\.)(\\d)+"))
                         weight = Float.parseFloat(split[2].trim());
 
                     line = split[0];
