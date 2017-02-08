@@ -66,9 +66,9 @@ public class SrcMlFolderReader {
         }
     }
 
-    private void readAndRememberSrcmlFile(String filePath) {
+    public Document readAndRememberSrcmlFile(String filePath) {
         try (InputStream inputStream = new ByteArrayInputStream(getFileBytes(filePath))) {
-            readAndRememberSrcmlFile(inputStream, filePath);
+            return readAndRememberSrcmlFile(inputStream, filePath);
         } catch (IOException e) {
             throw new RuntimeException("I/O exception closing srcml file " + filePath, e);
         }
@@ -315,4 +315,6 @@ public class SrcMlFolderReader {
         String[] lines = str.split("\r\n|\r|\n");
         return lines.length;
     }
+
+
 }
