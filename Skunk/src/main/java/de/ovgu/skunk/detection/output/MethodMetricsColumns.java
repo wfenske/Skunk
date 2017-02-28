@@ -8,7 +8,7 @@ import de.ovgu.skunk.detection.data.Method;
  *
  * @author wfenske
  */
-public enum MethodMetricsColumns implements CsvColumnValueProvider<Method> {
+public enum MethodMetricsColumns implements CsvColumnValueProvider<Method, Context> {
     File {
         @Override
         public String csvColumnValue(Method m, Context ctx) {

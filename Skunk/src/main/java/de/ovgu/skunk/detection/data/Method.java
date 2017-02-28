@@ -87,7 +87,7 @@ public class Method {
      * Method.
      *
      * @param signature  the signature
-     * @param start1     the start1 line of the function (first file in the file is counted as 1)
+     * @param start1     the starting line of the function within it's file (first line in the file is counted as 1)
      * @param loc        lenght of the function in lines of code
      * @param sourceCode source code as returned from src2srcml
      */

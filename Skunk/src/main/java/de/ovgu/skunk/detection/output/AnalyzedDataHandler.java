@@ -4,10 +4,8 @@ import de.ovgu.skunk.detection.data.*;
 import de.ovgu.skunk.detection.detector.DetectionConfig;
 import de.ovgu.skunk.detection.detector.SmellReason;
 import de.ovgu.skunk.util.FileUtils;
-import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 
-import java.io.FileWriter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -15,34 +13,6 @@ import java.util.*;
 public class AnalyzedDataHandler {
     private final Context ctx;
     private String currentDate = "";
-
-    static abstract class CsvWriterHelper {
-        public void write(String fileName) {
-            FileWriter writer = null;
-            CSVPrinter csv = null;
-            try {
-                writer = new FileWriter(fileName);
-                try {
-                    csv = new CSVPrinter(writer, CSVFormat.EXCEL);
-                    actuallyDoStuff(csv);
-                } catch (Exception e) {
-                    throw new RuntimeException("Error writing CSV file `" + fileName + "'", e);
-                } finally {
-                    try {
-                        writer.flush();
-                        writer.close();
-                        if (csv != null) csv.close();
-                    } catch (IOException e) {
-                        throw new RuntimeException("Error closing CSV printer for file `" + fileName + "'", e);
-                    }
-                }
-            } catch (IOException e) {
-                throw new RuntimeException("Error writing CSV file `" + fileName + "'", e);
-            }
-        }
-
-        protected abstract void actuallyDoStuff(CSVPrinter csv) throws IOException;
-    }
 
     /**
      * A comparator that compares featurenames of feature constants.
@@ -140,8 +110,8 @@ public class AnalyzedDataHandler {
         String overview = this.getOverviewResults(results);
         // get overview per attribute
         String attributes = this.getAttributeOverviewResults(results);
-        // Sortiert nach Location und file
-        String files = this.getFileSortedRestults(results);
+        // Sortiert nach location und file
+        String files = this.getFileSortedResults(results);
         String methods = this.getMethodSortedResults(results);
         // get the results sorted per feature
         String features = this.getFeatureSortedResults(results);
@@ -196,7 +166,7 @@ public class AnalyzedDataHandler {
      * @param results the results
      * @return the location results
      */
-    private String getFileSortedRestults(Map<FeatureReference, List<SmellReason>> results) {
+    private String getFileSortedResults(Map<FeatureReference, List<SmellReason>> results) {
         String res = ctx.config.toString() + "\r\n\r\n\r\n\r\n\r\n\r\n";
         // sort the keys after featurename, filepath and start1
         List<FeatureReference> sortedKeys = new ArrayList<>(results.keySet());
@@ -365,11 +335,11 @@ public class AnalyzedDataHandler {
      * @param fileName the file name
      */
     private void createFileCSV(String fileName) {
-        CsvWriterHelper h = new CsvWriterHelper() {
+        CsvFileWriterHelper h = new CsvFileWriterHelper() {
             @Override
             protected void actuallyDoStuff(CSVPrinter csv) throws IOException {
                 // add the header for the CSV file
-                CsvRowProvider<File, FileMetricsColumns> p = new CsvRowProvider<>(FileMetricsColumns.class, ctx);
+                CsvRowProvider<File, Context, FileMetricsColumns> p = new CsvRowProvider<>(FileMetricsColumns.class, ctx);
                 csv.printRecord(p.headerRow());
                 // calculate values and add records
                 List<Object[]> fileData = new ArrayList<>();
@@ -392,10 +362,10 @@ public class AnalyzedDataHandler {
      * @param fileName Name of the output CSV file
      */
     private void createFeatureCSV(String fileName) {
-        CsvWriterHelper h = new CsvWriterHelper() {
+        CsvFileWriterHelper h = new CsvFileWriterHelper() {
             @Override
             protected void actuallyDoStuff(CSVPrinter csv) throws IOException {
-                CsvRowProvider<Feature, FeatureMetricsColumns> p = new CsvRowProvider<>(FeatureMetricsColumns.class,
+                CsvRowProvider<Feature, Context, FeatureMetricsColumns> p = new CsvRowProvider<>(FeatureMetricsColumns.class,
                         ctx);
                 csv.printRecord(p.headerRow());
                 List<Object[]> featureData = new ArrayList<>();
@@ -403,7 +373,7 @@ public class AnalyzedDataHandler {
                     if (skipFeature(feat)) continue;
                     featureData.add(p.dataRow(feat));
                 }
-                // sort after smellvalue
+                // sort by smell value
                 Collections.sort(featureData, new ComparatorChain<>(LGSmellComparator));
                 for (Object[] record : featureData)
                     csv.printRecord(record);
@@ -418,10 +388,10 @@ public class AnalyzedDataHandler {
      * @param fileName Name of the output CSV file
      */
     private void createMethodCSV(final String fileName) {
-        CsvWriterHelper h = new CsvWriterHelper() {
+        CsvFileWriterHelper h = new CsvFileWriterHelper() {
             @Override
             protected void actuallyDoStuff(CSVPrinter csv) throws IOException {
-                CsvRowProvider<Method, MethodMetricsColumns> p = new CsvRowProvider<>(MethodMetricsColumns.class, ctx);
+                CsvRowProvider<Method, Context, MethodMetricsColumns> p = new CsvRowProvider<>(MethodMetricsColumns.class, ctx);
                 // add the header for the csv file
                 csv.printRecord(p.headerRow());
                 // calculate values and add records

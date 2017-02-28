@@ -3,8 +3,6 @@
  */
 package de.ovgu.skunk.detection.output;
 
-import de.ovgu.skunk.detection.data.Context;
-
 /**
  * Static selection of functions on Enumerations that model CSV files
  *
@@ -29,8 +27,18 @@ public class CsvEnumUtils {
         return r;
     }
 
-    public static <TInput, TEnum extends Enum<?> & CsvColumnValueProvider<TInput>> Object[] dataRow(
-            Class<? extends TEnum> columnsClass, TInput o, Context ctx) {
+    /**
+     * Convert the given object, <code>o</code>, into a list of column values for serialization into a CSv file
+     *
+     * @param columnsClass
+     * @param o
+     * @param ctx
+     * @param <TInput>
+     * @param <TEnum>
+     * @return An array of objects, one for each column of the resulting CSV file
+     */
+    public static <TInput, TContext, TEnum extends Enum<?> & CsvColumnValueProvider<TInput, TContext>> Object[] dataRow(
+            Class<? extends TEnum> columnsClass, TInput o, TContext ctx) {
         TEnum[] enumConstants = columnsClass.getEnumConstants();
         if (enumConstants == null) throw new IllegalArgumentException("Not an enum type: " + columnsClass);
         final int len = enumConstants.length;

@@ -11,7 +11,7 @@ import de.ovgu.skunk.detection.data.Feature;
  *
  * @author wfenske
  */
-public enum FeatureMetricsColumns implements CsvColumnValueProvider<Feature> {
+public enum FeatureMetricsColumns implements CsvColumnValueProvider<Feature, Context> {
     Name {
         @Override
         public Object csvColumnValue(Feature f, Context ctx) {

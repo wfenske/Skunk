@@ -11,7 +11,7 @@ import de.ovgu.skunk.detection.data.File;
  *
  * @author wfenske
  */
-public enum FileMetricsColumns implements CsvColumnValueProvider<File> {
+public enum FileMetricsColumns implements CsvColumnValueProvider<File, Context> {
     File {
         @Override
         public String csvColumnValue(File file, Context ctx) {
