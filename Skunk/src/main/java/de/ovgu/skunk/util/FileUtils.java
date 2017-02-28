@@ -89,10 +89,17 @@ public final class FileUtils {
                 while (pathBefore.getNameCount() > ixCppStatsFolder) {
                     pathBefore = pathBefore.getParent();
                 }
-                Path pathAfter = cppstatsSrcMlFilePath.subpath(ixCppStatsFolder + 1,
-                        cppstatsSrcMlFilePath.getNameCount() - 1);
+                final int pathAfterBegin = ixCppStatsFolder + 1;
+                final int pathAfterEnd = cppstatsSrcMlFilePath.getNameCount() - 1;
+                final String pathAfterString;
+                if (pathAfterBegin != pathAfterEnd) {
+                    Path pathAfter = cppstatsSrcMlFilePath.subpath(pathAfterBegin, pathAfterEnd);
+                    pathAfterString = pathAfter.toString();
+                } else {
+                    pathAfterString = ".";
+                }
                 String basenameNoXml = basename.substring(0, basenamePosXmlSuffix);
-                Path actualSourcePath = Paths.get(pathBefore.toString(), "source", pathAfter.toString(), basenameNoXml);
+                Path actualSourcePath = Paths.get(pathBefore.toString(), "source", pathAfterString, basenameNoXml);
                 return actualSourcePath.normalize().toString();
             }
         }
