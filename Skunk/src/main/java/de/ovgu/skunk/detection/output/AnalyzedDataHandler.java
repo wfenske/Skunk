@@ -7,12 +7,10 @@ import de.ovgu.skunk.util.FileUtils;
 import org.apache.commons.csv.CSVPrinter;
 
 import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class AnalyzedDataHandler {
     private final Context ctx;
-    private String currentDate = "";
 
     /**
      * A comparator that compares featurenames of feature constants.
@@ -115,8 +113,7 @@ public class AnalyzedDataHandler {
         String methods = this.getMethodSortedResults(results);
         // get the results sorted per feature
         String features = this.getFeatureSortedResults(results);
-        currentDate = new SimpleDateFormat("yyyyMMddHHmm").format(new Date());
-        String fileNamePrefix = currentDate + "_detection_";
+        String fileNamePrefix = ctx.getDetectionOutputFilenamePrefix();
         SimpleFileWriter writer = new SimpleFileWriter();
         try {
             writer.write(new java.io.File(fileNamePrefix + "overview.txt"), overview);
@@ -270,7 +267,7 @@ public class AnalyzedDataHandler {
         // lofcs in project
         int completeLofc = 0;
         // loac in project
-        HashMap<String, List<Integer>> loacs = new HashMap<>();
+        Map<String, List<Integer>> loacs = new HashMap<>();
         int completeLoac = 0;
         float loacPercentage = 0;
         for (FeatureReference constant : results.keySet()) {
@@ -309,9 +306,8 @@ public class AnalyzedDataHandler {
     /**** TXT Start End Saving *****/
     /**** CSV Smell Value Saving ****/
     public void SaveCsvResults() {
-        // ensure consistent filenaming
-        if (this.currentDate.equals("")) currentDate = new SimpleDateFormat("yyyyMMddHHmm").format(new Date());
-        String fileNamePrefix = this.currentDate + "_metrics_";
+        // ensure consistent file naming
+        String fileNamePrefix = ctx.getMetricsOutputFilenamePrefix();
         String fnMethods = fileNamePrefix + "methods.csv";
         String fnFeatures = fileNamePrefix + "features.csv";
         String fnFiles = fileNamePrefix + "files.csv";

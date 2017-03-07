@@ -36,12 +36,12 @@ public class Skunk {
     private Context ctx = null;
 
     /**
-     * The path of the source folder.  Mutually exclusive with {@link processedDataDir}.
+     * The path of the source folder.  Mutually exclusive with {@link #processedDataDir}.
      */
     private Optional<String> sourcePath = Optional.empty();
 
     /**
-     * Directory from which preprocessed data will be loaded.  Mutually exclusive with {@link sourcePath}.
+     * Directory from which preprocessed data will be loaded.  Mutually exclusive with {@link #sourcePath}.
      */
     private Optional<String> processedDataDir = Optional.empty();
     /**
@@ -226,7 +226,7 @@ public class Skunk {
                 .longOpt("save-intermediate")
                 .desc("save intermediate analysis results to speed up future detection runs")
                 .build());
-        
+
         // --source= and --processed= options
         OptionGroup inputOptions = new OptionGroup();
         inputOptions.setRequired(required);
@@ -243,9 +243,9 @@ public class Skunk {
                 .hasArg()
                 .argName("DIR")
                 .build());
-        
+
         options.addOptionGroup(inputOptions);
-        
+
         //@formatter:on
         return options;
     }

@@ -38,7 +38,7 @@ public class MethodCollection {
      *                 <code>&quot;alloc.c.xml&quot;</code>)
      * @param method   the method
      */
-    public void AddMethodToFile(String fileName, Method method) {
+    public void AddFunctionToFile(String fileName, Method method) {
         Map<String, Method> methods = findMethodsForFile(fileName);
         if (methods == null) {
             methods = new LinkedHashMap<>();
@@ -72,7 +72,7 @@ public class MethodCollection {
      * @param functionSignature the function signature
      * @return the method, if found, <code>null</code> otherwise
      */
-    public Method FindMethod(String fileDesignator, String functionSignature) {
+    public Method FindFunction(String fileDesignator, String functionSignature) {
         // get the method based on the method signature
         Map<String, Method> methods = findMethodsForFile(fileDesignator);
         if (methods != null) {

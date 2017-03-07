@@ -152,7 +152,7 @@ public class File {
      *
      * @param meth the meth
      */
-    public void InternMethod(Method meth) {
+    public void InternFunction(Method meth) {
         if (!this.methods.contains(meth)) {
             this.methods.add(meth);
             meth.filePath = this.filePath;

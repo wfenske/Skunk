@@ -66,7 +66,7 @@ public class FileCollection {
         if (file == null) {
             throw new RuntimeException("Unknown file `" + fileDesignator + "'.");
         }
-        file.InternMethod(method);
+        file.InternFunction(method);
     }
 
     public static String KeyFromFilePath(String filePath) {

@@ -7,10 +7,6 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
-import javax.xml.xpath.XPath;
-import javax.xml.xpath.XPathConstants;
-import javax.xml.xpath.XPathExpressionException;
-import javax.xml.xpath.XPathFactory;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -19,7 +15,6 @@ import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * The Class SrcMlFolderReader.
@@ -235,13 +230,13 @@ public class SrcMlFolderReader {
      */
     private Method parseAndInternMethod(Node funcNode, String filePath, String fileDesignator) {
         String functionSignature = parseFunctionSignature(funcNode, filePath);
-        Method method = ctx.functions.FindMethod(fileDesignator, functionSignature);
-        if (method == null) {
-            method = parseFunctionUsingSignature(funcNode, filePath, fileDesignator, functionSignature);
-            ctx.functions.AddMethodToFile(fileDesignator, method);
+        Method function = ctx.functions.FindFunction(fileDesignator, functionSignature);
+        if (function == null) {
+            function = parseFunctionUsingSignature(funcNode, filePath, fileDesignator, functionSignature);
+            ctx.functions.AddFunctionToFile(fileDesignator, function);
         }
-        ctx.files.InternFunctionIntoExistingFile(fileDesignator, method);
-        return method;
+        ctx.files.InternFunctionIntoExistingFile(fileDesignator, function);
+        return function;
     }
 
     public Method parseFunction(Node funcNode, String filePath) {
@@ -256,16 +251,10 @@ public class SrcMlFolderReader {
 
     private Method parseFunctionUsingSignature(Node funcNode, String filePath, String fileDesignator, String functionSignature) {
         // Line number in the XML file.  Note, this count starts from 1, not from 0.
-        int cStartLoc = parseFunctionStartLoc(funcNode);
+        int cStartLoc = FunctionSignatureParser.parseFunctionStartLoc(funcNode);
         String textContent = funcNode.getTextContent();
         int len = countLines(textContent);
         return new Method(ctx, functionSignature, filePath, cStartLoc, len, textContent);
-    }
-
-    private static int parseFunctionStartLoc(Node funcNode) {
-        int xmlStartLoc = Integer.parseInt((String) funcNode.getUserData("lineNumber"));
-        // The srcML representation starts with a one-line XML declaration, which we subtract here.
-        return xmlStartLoc - 1;
     }
 
     private void readAllFunctions() {
@@ -289,79 +278,6 @@ public class SrcMlFolderReader {
         }
     }
 
-    private static class FunctionSigParser {
-        Node functionNode;
-        String filePath;
-        XPath xPath = XPathFactory.newInstance().newXPath();
-
-        public FunctionSigParser(Node functionNode, String filePath) {
-            this.functionNode = functionNode;
-            this.filePath = filePath;
-        }
-
-        /**
-         * Parses K&R-style function definitions, such as
-         * <p>
-         * static int
-         * newerf (f1, f2)
-         * char *f1, *f2;
-         * { ... }
-         * <p>
-         * which will be parsed into SrcML like this:
-         * <p>
-         * <function>
-         * <type>
-         * <specifier>static</specifier>
-         * <name>int</name>
-         * </type>
-         * <name>newerf</name>
-         * <parameter_list>(
-         * <param><decl><type><name>f1</name></type></decl></param>,
-         * <param><decl><type><name>f2</name></type></decl></param>
-         * )</parameter_list>
-         * <decl_stmt>
-         * <decl><type><name>char</name> *</type><name>f1</name></decl>,
-         * <decl><type ref="prev"/>*<name>f2</name></decl>;
-         * </decl_stmt>
-         * </function>
-         *
-         * @return Normalized function signature representation
-         */
-        public String parseKandRFunctionSig() {
-            Node returnType = getNodeOrDie(functionNode, "/function/type");
-            Optional<Node> returnTypeSpecifier = getOptionalNode(returnType, "/type/specifier");
-            Node returnTypeName = getNodeOrDie(returnType, "/type/name");
-            return null;
-        }
-
-        private Node getNodeOrDie(Node nodeOfInterest, String xpathExpression) {
-            Optional<Node> r = getOptionalNode(nodeOfInterest, xpathExpression);
-            if (r.isPresent()) return r.get();
-            else {
-                throw new RuntimeException("Missing node `" + xpathExpression + "' in "
-                        + functionNode.getTextContent() + " (" + funcLocForReporting() + ")");
-            }
-        }
-
-        private Optional<Node> getOptionalNode(Node nodeOfInterest, String xpathExpression) {
-            Node result = null;
-            try {
-                result = (Node) xPath.evaluate(xpathExpression,
-                        nodeOfInterest, XPathConstants.NODE);
-            } catch (XPathExpressionException e) {
-                throw new RuntimeException("Error finding node `" + xpathExpression + "' in "
-                        + functionNode.getTextContent() + " (" + funcLocForReporting() + ")");
-            }
-
-            return Optional.ofNullable(result);
-        }
-
-        private String funcLocForReporting() {
-            int startLoc = parseFunctionStartLoc(functionNode);
-            return filePath + ":" + startLoc;
-        }
-    }
-
     /**
      * Extracts the function signature from a SrcML XML function node
      *
@@ -369,49 +285,11 @@ public class SrcMlFolderReader {
      * @return the function's signature
      */
     public static String parseFunctionSignature(Node functionNode, String path) {
-        // get the text content of the node (signature + method content),
-        // and remove method content until beginning of block
-        String nodeContent = functionNode.getTextContent();
-        final String noBodyResult;
-        final int openBraceIx = nodeContent.indexOf('{');
-        if (openBraceIx == -1) {
-            /*
-             * This warning will also be triggered by K&R-style function definitions, such as
-             *
-             * static int
-             * newerf (f1, f2)
-             * char *f1, *f2;
-             * { ... }
-             *
-             * which will be parsed into SrcML like this:
-             *
-             * <function>
-             *     <type>
-             *         <specifier>static</specifier>
-             *         <name>int</name>
-             *     </type>
-             *     <name>newerf</name>
-             *     <parameter_list>(
-             *          <param><decl><type><name>f1</name></type></decl></param>,
-             *          <param><decl><type><name>f2</name></type></decl></param>
-             *     )</parameter_list>
-             *     <decl_stmt>
-             *          <decl><type><name>char</name> *</type><name>f1</name></decl>,
-             *          <decl><type ref="prev"/>*<name>f2</name></decl>;
-             *     </decl_stmt>
-             * </function>
-             */
-            int startLoc = parseFunctionStartLoc(functionNode);
-            LOG.warn("Encountered strange function node (no opening `{' found) at " +
-                    path + ":" + startLoc +
-                    ": " + nodeContent);
-            noBodyResult = nodeContent;
-        } else {
-            noBodyResult = nodeContent.substring(0, openBraceIx);
+        FunctionSignatureParser parser = new FunctionSignatureParser(functionNode, path);
+        if (LOG.isDebugEnabled()) {
+            parser.enableDebugParseExceptions();
         }
-        // Squeeze multiple space signs into a single space
-        String collapsedSpace = noBodyResult.replaceAll("\\s+", " ");
-        return collapsedSpace.trim();
+        return parser.parseFunctionSignature();
     }
 
     /**
