@@ -241,6 +241,13 @@ public class Method {
         return FileUtils.displayPathFromCppstatsSrcMlPath(filePath);
     }
 
+    /**
+     * @return The original source file's path, relative to the project's repository root.
+     */
+    public String ProjectRelativeFilePath() {
+        return FileUtils.projectRelativePathFromCppstatsSrcMlPath(filePath);
+    }
+
     @Override
     public String toString() {
         return String.format("Function [%s /* %s:%d,%d */]", functionSignatureXml, FilePathForDisplay(),

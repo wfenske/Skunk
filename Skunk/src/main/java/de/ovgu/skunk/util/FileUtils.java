@@ -106,17 +106,51 @@ public final class FileUtils {
         return cppstatsSrcMlFilePath.toString();
     }
 
+    public static Path projectRelativePathFromCppstatsSrcMlPath(Path cppstatsSrcMlFilePath) {
+        final String basename = cppstatsSrcMlFilePath.getFileName().toString();
+        final int basenamePosXmlSuffix = basename.lastIndexOf(".xml");
+        if (basenamePosXmlSuffix != -1) {
+            int ixCppStatsFolder = posCppstatsFolder(cppstatsSrcMlFilePath);
+            if (ixCppStatsFolder != -1) {
+                String basenameNoXml = basename.substring(0, basenamePosXmlSuffix);
+
+                int beginIndex = ixCppStatsFolder + 1;
+                int endIndex = cppstatsSrcMlFilePath.getNameCount() - 1;
+                if (beginIndex == endIndex) {
+                    return Paths.get(basenameNoXml);
+                } else {
+                    Path projectRelativeDir = cppstatsSrcMlFilePath.subpath(beginIndex, endIndex);
+                    Path actualSourcePath = Paths.get(projectRelativeDir.toString(), basenameNoXml);
+                    return actualSourcePath;
+                }
+            }
+        }
+        throw new IllegalArgumentException("Not a proper cppstats XML source file path: " + cppstatsSrcMlFilePath);
+    }
+
+    /**
+     * @param cppstatsSrcMlFilePath Pathname of a SrcML source file that has been created by
+     *                              cppStats. It usually looks something like
+     *                              <code>&quot;/Users/me/subjects/snapshots/apache/2004-01-23/_cppstats/src/support/suexec.c.xml&quot;</code>
+     *                              .
+     * @return The simplified name of the actual C source file, e.g.
+     * <code>&quot;snapshots/apache/2004-01-23/support/suexec.c&quot;</code>
+     */
+    public static String displayPathFromCppstatsSrcMlPath(String cppstatsSrcMlFilePath) {
+        String actualSourceFilePath = actualSourceFilePathFromCppstatsSrcMlPath(cppstatsSrcMlFilePath);
+        return relPathForDisplay(actualSourceFilePath);
+    }
+
     /**
      * @param cppstatsSrcMlFilePath Pathname of a SrcML source file that has been created by
      *                              cppStats. It usually looks something like
      *                              <code>&quot;/Users/me/subjects/apache/_cppstats/src/support/suexec.c.xml&quot;</code>
      *                              .
-     * @return The simplified name of the actual C source file, e.g.
-     * <code>&quot;apache/support/suexec.c&quot;</code>
+     * @return The name of the actual C source file relative to the project repository root, e.g.
+     * <code>&quot;support/suexec.c&quot;</code>
      */
-    public static String displayPathFromCppstatsSrcMlPath(String cppstatsSrcMlFilePath) {
-        String actualSourceFilePath = actualSourceFilePathFromCppstatsSrcMlPath(cppstatsSrcMlFilePath);
-        return relPathForDisplay(actualSourceFilePath);
+    public static String projectRelativePathFromCppstatsSrcMlPath(String cppstatsSrcMlFilePath) {
+        return projectRelativePathFromCppstatsSrcMlPath(Paths.get(cppstatsSrcMlFilePath)).toString();
     }
 
     /**
