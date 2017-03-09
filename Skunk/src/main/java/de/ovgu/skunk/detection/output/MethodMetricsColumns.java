@@ -9,10 +9,11 @@ import de.ovgu.skunk.detection.data.Method;
  * @author wfenske
  */
 public enum MethodMetricsColumns implements CsvColumnValueProvider<Method, Context> {
-    File {
+    FILE {
         @Override
         public String csvColumnValue(Method m, Context ctx) {
-            return m.FilePathForDisplay();
+            //return m.FilePathForDisplay();
+            return m.ProjectRelativeFilePath();
         }
     },
     Start {
@@ -21,7 +22,7 @@ public enum MethodMetricsColumns implements CsvColumnValueProvider<Method, Conte
             return m.start1;
         }
     },
-    Method {
+    FUNCTION_SIGNATURE {
         @Override
         public String csvColumnValue(Method m, Context ctx) {
             return m.functionSignatureXml;

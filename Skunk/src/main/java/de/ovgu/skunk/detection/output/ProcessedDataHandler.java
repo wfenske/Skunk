@@ -17,7 +17,7 @@ import java.util.Set;
 public class ProcessedDataHandler {
     private final Context ctx;
 
-    private static enum ProcessedDataFile {
+    private enum ProcessedDataFile {
         FEATURES {
             @Override
             public String filename(Context ctx) {

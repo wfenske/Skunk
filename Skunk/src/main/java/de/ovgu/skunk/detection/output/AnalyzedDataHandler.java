@@ -308,7 +308,7 @@ public class AnalyzedDataHandler {
     public void SaveCsvResults() {
         // ensure consistent file naming
         String fileNamePrefix = ctx.getMetricsOutputFilenamePrefix();
-        String fnMethods = fileNamePrefix + "methods.csv";
+        String fnMethods = fileNamePrefix + "functions.csv";
         String fnFeatures = fileNamePrefix + "features.csv";
         String fnFiles = fileNamePrefix + "files.csv";
         String dirName;
@@ -317,7 +317,7 @@ public class AnalyzedDataHandler {
         } catch (IOException e) {
             throw new RuntimeException("I/O error writing CSV results", e);
         }
-        this.createMethodCSV(fnMethods);
+        this.createFunctionCSV(fnMethods);
         this.createFeatureCSV(fnFeatures);
         this.createFileCSV(fnFiles);
         String outDir = FileUtils.relPath(dirName);
@@ -383,7 +383,7 @@ public class AnalyzedDataHandler {
      *
      * @param fileName Name of the output CSV file
      */
-    private void createMethodCSV(final String fileName) {
+    private void createFunctionCSV(final String fileName) {
         CsvFileWriterHelper h = new CsvFileWriterHelper() {
             @Override
             protected void actuallyDoStuff(CSVPrinter csv) throws IOException {
