@@ -27,6 +27,15 @@ public class CsvEnumUtils {
         return r;
     }
 
+    public static <TEnum extends Enum<?>> String[] headerRowStrings(Class<? extends TEnum> columnsClass) {
+        Object[] names = headerRow(columnsClass);
+        String[] result = new String[names.length];
+        for (int i = 0; i < names.length; i++) {
+            result[i] = names[i].toString();
+        }
+        return result;
+    }
+
     /**
      * Convert the given object, <code>o</code>, into a list of column values for serialization into a CSv file
      *
