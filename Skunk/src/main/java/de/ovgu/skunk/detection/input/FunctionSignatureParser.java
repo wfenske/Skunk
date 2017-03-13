@@ -249,45 +249,152 @@ public class FunctionSignatureParser {
         } else {
             noBodyResult = functionNodeTextContent.substring(0, openBraceIx);
         }
-        // Delete block comments (yeah, there are some cases where these are part of the function signature ...)
-        //String noBlockComments = noBodyResult.replaceAll("/\\*([^*]|\\*(?!/))*\\*/", "");
-        String noBlockComments = removeBlockComments(noBodyResult);
+        // Delete line and block comments (yeah, there are some cases where these are part of the function signature ...)
+        String noComments = removeComments(noBodyResult);
 
-        return postProcessSignature(noBlockComments);
+        return postProcessSignature(noComments);
     }
 
-    private static String removeBlockComments(String input) {
-        String result = input;
-        while (true) {
-            final int ixBlockCommentStart = result.indexOf("/*");
-            if (ixBlockCommentStart == -1) {
-                // No more beginning block comments. We can stop now.
-                break;
-            }
-
-            final int len = result.length();
-            int firstPossibleEndPosition = ixBlockCommentStart + 2;
-            if (firstPossibleEndPosition >= len) {
-                // no chance of the block comment being closed
-                LOG.warn("Possibly malformed block comment in function " + input);
-                break;
-            }
-
-            final int ixBlockCommentEnd = result.indexOf("*/", firstPossibleEndPosition);
-            if (ixBlockCommentEnd == -1) {
-                LOG.warn("Possibly malformed block comment in function " + input);
-                break;
-            }
-
-            result = removeSubstring(result, ixBlockCommentStart, ixBlockCommentEnd + 2);
+    static String removeComments(String inputString) {
+        // We expect comments in function signatures to be rare, so before we start expensive calculations make sure
+        // we may even have a comment.
+        if ((inputString.indexOf("/*") == -1) && (inputString.indexOf("//") == -1)) {
+            return inputString;
         }
-        return result;
-    }
 
-    private static String removeSubstring(String s, int startIndex, int endIndex) {
-        String partBefore = s.substring(0, startIndex);
-        String partAfter = s.substring(endIndex);
-        return partBefore + partAfter;
+        char[] input = new char[inputString.length()];
+        inputString.getChars(0, input.length, input, 0);
+        StringBuilder result = new StringBuilder();
+
+        int iRead = 0;
+        while (iRead < input.length) {
+            char c0 = input[iRead++];
+            if (iRead >= input.length) {
+                // End of input.  Just copy this last character and stop.
+                result.append(c0);
+                break;
+            }
+            switch (c0) {
+                case '/': { // possible start of line or block comment.
+                    char c1 = input[iRead++];
+                    switch (c1) {
+                        case '*': // We hit a block comment
+                            while (iRead < input.length) {
+                                char cNext0 = input[iRead++];
+                                if (cNext0 == '*') { // Possible end of block comment
+                                    // Make sure we have at least one more character left
+                                    if (iRead >= input.length) {
+                                        LOG.warn("Possibly malformed block comment in function " + inputString);
+                                        break;
+                                    }
+                                    char cNext1 = input[iRead];
+                                    if (cNext1 == '/') { // End of block comment
+                                        // Advance the read pointer so we won't look at the / of the end-of-comment marker again.
+                                        iRead++;
+                                        break;
+                                    } else {
+                                        // Some other character followed our `*' --> Ignore the `*' but leave the read
+                                        // pointer at the character after the `*'.
+                                    }
+                                } else {
+                                    // Some other character within a block comment --> ignore
+                                }
+                            }
+                            break;
+                        case '/': // We hit a line comment
+                            // Skip all chars up to the next newline or up to the end of input sequence.
+                            while (iRead < input.length) {
+                                char cNext = input[iRead++];
+                                if (cNext == '\n') {
+                                    result.append(cNext);
+                                    break;
+                                }
+                            }
+                            break;
+                        default:
+                            // We encountered `/' followed by some other character.  Thus, the next comment must start
+                            // after c1.  (Otherwise, we would have parsed `//', which we know we have not.)
+                            result.append(c0);
+                            result.append(c1);
+                    }
+                    break;
+                }  // End of case '/'
+                // We care about string literals, too, because if we don't recognize them correctly, we may
+                // mistake a `/*' within a string as the start of a block comment.
+                case '"': // Start of a string literal
+                {
+                    result.append(c0);
+                    boolean endOfLiteral = false;
+                    boolean parserError = false;
+                    while ((iRead < input.length) && !endOfLiteral && !parserError) {
+                        char cNext = input[iRead++];
+                        result.append(cNext);
+                        switch (cNext) {
+                            case '"':
+                                endOfLiteral = true;
+                                break;
+                            case '\\': // Escape sequence
+                                // Read whatever character follows the `\' and continue reading regular string chars
+                                // afterwards.
+                                if (iRead < input.length) {
+                                    char cNextNext = input[iRead++];
+                                    result.append(cNextNext);
+                                } else {
+                                    LOG.warn("Possible malformed escape sequence in string literal in function " + inputString);
+                                    parserError = true;
+                                }
+                                break;
+                            default:
+                                // Some other character. We already copied the char to the output, so there is nothing
+                                // left to do here.
+                        }
+                    }
+                    if (!endOfLiteral) {
+                        LOG.warn("Possible non-ending string literal in function " + inputString);
+                    }
+                    break;
+                } // End of string literal
+                // I'm not entirely sure whether or not we need to parse character literals, too.  It isn't too
+                // difficult, though, and the code is very similar to what we do for string literals (see above).
+                case '\'': // Start of a character literal
+                {
+                    result.append(c0);
+                    boolean endOfLiteral = false;
+                    boolean parserError = false;
+                    while ((iRead < input.length) && !endOfLiteral && !parserError) {
+                        char cNext = input[iRead++];
+                        result.append(cNext);
+                        switch (cNext) {
+                            case '\'':
+                                endOfLiteral = true;
+                                break;
+                            case '\\': // Escape sequence
+                                // Read whatever character follows the `\' and continue reading regular string chars
+                                // afterwards.
+                                if (iRead < input.length) {
+                                    char cNextNext = input[iRead++];
+                                    result.append(cNextNext);
+                                } else {
+                                    LOG.warn("Possible malformed escape sequence in character literal in function " + inputString);
+                                    parserError = true;
+                                }
+                                break;
+                            default:
+                                // Some other character. We already copied the char to the output, so there is nothing
+                                // left to do here.
+                        }
+                    }
+                    if (!endOfLiteral) {
+                        LOG.warn("Possible non-ending character literal in function " + inputString);
+                    }
+                    break;
+                } // End of string literal
+                default:
+                    result.append(c0);
+            }
+        }
+
+        return result.toString();
     }
 
     public String parseFunctionSignature() {
