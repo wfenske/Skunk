@@ -17,6 +17,7 @@ add_to_cp()
 real_me=$(realpath -- "$0")
 me_dir=$(dirname -- "${real_me}")
 maven_repo=$HOME/.m2/repository
+o_jvm="-Xmx4g"
 
 # commons-cli
 add_to_cp "${maven_repo}"/commons-cli/commons-cli/1.3/commons-cli-1.3.jar
@@ -43,4 +44,4 @@ add_to_cp "${maven_repo}"/log4j/log4j/1.2.14/log4j-1.2.14.jar
 # Skunk class files
 add_to_cp "${me_dir}"/target/classes
 
-exec java -cp "$CP" de.ovgu.skunk.detection.main.Skunk "$@"
+exec java ${o_jvm} -cp "$CP" de.ovgu.skunk.detection.main.Skunk "$@"
