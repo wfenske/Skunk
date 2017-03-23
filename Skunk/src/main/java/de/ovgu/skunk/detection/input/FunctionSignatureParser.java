@@ -34,6 +34,9 @@ public class FunctionSignatureParser {
         this.functionNode = functionNode;
         this.functionNodeTextContent = functionNode.getTextContent();
         this.filePath = filePath;
+        if (LOG.isDebugEnabled()) {
+            enableDebugParseExceptions();
+        }
     }
 
     /**
@@ -250,17 +253,22 @@ public class FunctionSignatureParser {
             noBodyResult = functionNodeTextContent.substring(0, openBraceIx);
         }
         // Delete line and block comments (yeah, there are some cases where these are part of the function signature ...)
-        String noComments = removeComments(noBodyResult);
+        String noComments = removeComments(noBodyResult, true, true);
 
         return postProcessSignature(noComments);
     }
 
-    static String removeComments(String inputString) {
+    static String removeComments(String inputString, boolean removeStringAndCharLiterals) {
         // We expect comments in function signatures to be rare, so before we start expensive calculations make sure
         // we may even have a comment.
-        if ((inputString.indexOf("/*") == -1) && (inputString.indexOf("//") == -1)) {
+        boolean mayHaveComments = (inputString.indexOf("/*") != -1) || (inputString.indexOf("//") != -1);
+        boolean mayHaveStrings = removeStringAndCharLiterals && (inputString.indexOf('"') != -1);
+        //boolean mayHaveCppDirectives = removeCppDirectives && (inputString.indexOf('#') != -1);
+
+        if (!mayHaveComments && !mayHaveStrings) {
             return inputString;
         }
+        final boolean keepStringAndCharLiterals = !removeStringAndCharLiterals;
 
         char[] input = new char[inputString.length()];
         inputString.getChars(0, input.length, input, 0);
@@ -312,8 +320,8 @@ public class FunctionSignatureParser {
                             }
                             break;
                         default:
-                            // We encountered `/' followed by some other character.  Thus, the next comment must start
-                            // after c1.  (Otherwise, we would have parsed `//', which we know we have not.)
+                            // We encountered `/' (c0) followed by some other character (c1).  Thus, the next comment
+                            // must start after c1.
                             result.append(c0);
                             result.append(c1);
                     }
@@ -358,12 +366,16 @@ public class FunctionSignatureParser {
                 // difficult, though, and the code is very similar to what we do for string literals (see above).
                 case '\'': // Start of a character literal
                 {
-                    result.append(c0);
+                    if (keepStringAndCharLiterals) {
+                        result.append(c0);
+                    }
                     boolean endOfLiteral = false;
                     boolean parserError = false;
                     while ((iRead < input.length) && !endOfLiteral && !parserError) {
                         char cNext = input[iRead++];
-                        result.append(cNext);
+                        if (keepStringAndCharLiterals) {
+                            result.append(cNext);
+                        }
                         switch (cNext) {
                             case '\'':
                                 endOfLiteral = true;
@@ -373,7 +385,9 @@ public class FunctionSignatureParser {
                                 // afterwards.
                                 if (iRead < input.length) {
                                     char cNextNext = input[iRead++];
-                                    result.append(cNextNext);
+                                    if (keepStringAndCharLiterals) {
+                                        result.append(cNextNext);
+                                    }
                                 } else {
                                     LOG.warn("Possible malformed escape sequence in character literal in function " + inputString);
                                     parserError = true;
@@ -389,6 +403,14 @@ public class FunctionSignatureParser {
                     }
                     break;
                 } // End of string literal
+                /*
+                case '#':
+                    if (removeCppDirectives && isBeginningOfLine(input, iRead - 1)) {
+
+                        break;
+                    }
+                    // HINT, 2017-03-23, wf: Yes, we want fall-through in case removing cpp directives is not requested.
+                    */
                 default:
                     result.append(c0);
             }
@@ -396,6 +418,16 @@ public class FunctionSignatureParser {
 
         return result.toString();
     }
+
+//    static boolean isBeginningOfLine(char[] input, int iRead) {
+//        if (iRead == 0) return true;
+//        final int posBefore = iRead - 1;
+//        if (posBefore < input.length) {
+//            final char previousChar = input[posBefore];
+//            return ((previousChar == '\n') || (previousChar == '\r'));
+//        }
+//        return false;
+//    }
 
     public String parseFunctionSignature() {
         // get the text content of the node (signature + method content),

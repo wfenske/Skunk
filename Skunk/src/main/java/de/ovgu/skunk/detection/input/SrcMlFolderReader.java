@@ -286,9 +286,6 @@ public class SrcMlFolderReader {
      */
     public static String parseFunctionSignature(Node functionNode, String path) {
         FunctionSignatureParser parser = new FunctionSignatureParser(functionNode, path);
-        if (LOG.isDebugEnabled()) {
-            parser.enableDebugParseExceptions();
-        }
         return parser.parseFunctionSignature();
     }
 
