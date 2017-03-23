@@ -253,7 +253,7 @@ public class FunctionSignatureParser {
             noBodyResult = functionNodeTextContent.substring(0, openBraceIx);
         }
         // Delete line and block comments (yeah, there are some cases where these are part of the function signature ...)
-        String noComments = removeComments(noBodyResult, true, true);
+        String noComments = removeComments(noBodyResult, true);
 
         return postProcessSignature(noComments);
     }
@@ -263,12 +263,14 @@ public class FunctionSignatureParser {
         // we may even have a comment.
         boolean mayHaveComments = (inputString.indexOf("/*") != -1) || (inputString.indexOf("//") != -1);
         boolean mayHaveStrings = removeStringAndCharLiterals && (inputString.indexOf('"') != -1);
+        boolean mayHaveChars = removeStringAndCharLiterals && (inputString.indexOf('\'') != -1);
         //boolean mayHaveCppDirectives = removeCppDirectives && (inputString.indexOf('#') != -1);
 
-        if (!mayHaveComments && !mayHaveStrings) {
+        if (!mayHaveComments && !mayHaveStrings && !mayHaveChars) {
             return inputString;
         }
-        final boolean keepStringAndCharLiterals = !removeStringAndCharLiterals;
+        final boolean keepStringLiterals = !removeStringAndCharLiterals;
+        final boolean keepCharLiterals = !removeStringAndCharLiterals;
 
         char[] input = new char[inputString.length()];
         inputString.getChars(0, input.length, input, 0);
@@ -331,12 +333,16 @@ public class FunctionSignatureParser {
                 // mistake a `/*' within a string as the start of a block comment.
                 case '"': // Start of a string literal
                 {
-                    result.append(c0);
+                    if (keepStringLiterals) {
+                        result.append(c0);
+                    }
                     boolean endOfLiteral = false;
                     boolean parserError = false;
                     while ((iRead < input.length) && !endOfLiteral && !parserError) {
                         char cNext = input[iRead++];
-                        result.append(cNext);
+                        if (keepStringLiterals) {
+                            result.append(cNext);
+                        }
                         switch (cNext) {
                             case '"':
                                 endOfLiteral = true;
@@ -346,7 +352,9 @@ public class FunctionSignatureParser {
                                 // afterwards.
                                 if (iRead < input.length) {
                                     char cNextNext = input[iRead++];
-                                    result.append(cNextNext);
+                                    if (keepStringLiterals) {
+                                        result.append(cNextNext);
+                                    }
                                 } else {
                                     LOG.warn("Possible malformed escape sequence in string literal in function " + inputString);
                                     parserError = true;
@@ -366,14 +374,14 @@ public class FunctionSignatureParser {
                 // difficult, though, and the code is very similar to what we do for string literals (see above).
                 case '\'': // Start of a character literal
                 {
-                    if (keepStringAndCharLiterals) {
+                    if (keepCharLiterals) {
                         result.append(c0);
                     }
                     boolean endOfLiteral = false;
                     boolean parserError = false;
                     while ((iRead < input.length) && !endOfLiteral && !parserError) {
                         char cNext = input[iRead++];
-                        if (keepStringAndCharLiterals) {
+                        if (keepCharLiterals) {
                             result.append(cNext);
                         }
                         switch (cNext) {
@@ -385,7 +393,7 @@ public class FunctionSignatureParser {
                                 // afterwards.
                                 if (iRead < input.length) {
                                     char cNextNext = input[iRead++];
-                                    if (keepStringAndCharLiterals) {
+                                    if (keepCharLiterals) {
                                         result.append(cNextNext);
                                     }
                                 } else {
@@ -402,7 +410,7 @@ public class FunctionSignatureParser {
                         LOG.warn("Possible non-ending character literal in function " + inputString);
                     }
                     break;
-                } // End of string literal
+                } // End of char literal
                 /*
                 case '#':
                     if (removeCppDirectives && isBeginningOfLine(input, iRead - 1)) {
