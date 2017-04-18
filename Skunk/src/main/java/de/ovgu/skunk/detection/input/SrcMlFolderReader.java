@@ -254,7 +254,9 @@ public class SrcMlFolderReader {
         int cStartLoc = FunctionSignatureParser.parseFunctionStartLoc(funcNode);
         String textContent = funcNode.getTextContent();
         int len = countLines(textContent);
-        return new Method(ctx, functionSignature, filePath, cStartLoc, len, textContent);
+        return new Method(ctx, functionSignature, filePath, cStartLoc, len
+                //, textContent
+        );
     }
 
     private void readAllFunctions() {
@@ -290,17 +292,24 @@ public class SrcMlFolderReader {
     }
 
     /**
-     * Count the number of lines in a string. A line is interpreted to end1 at
-     * the first occurrence of either &quot;\r\n&quot;, &quot;\n&quot;, or
-     * &quot;\r\n&quot;.
+     * Count the number of lines in a string. A line is interpreted to end at
+     * a linefeed character (&quot;\n&quot;). An empty string is defined to have no lines. If the last line does not
+     * end in a linefeed character, the return value is nevertheless increased by 1.  In other words, both
+     * <code>foo\nbar\n</code> and  <code>foo\nbar</code> are considered as having 2 lines.
      *
      * @param str the string
      * @return number of lines
      */
-    private static int countLines(String str) {
-        String[] lines = str.split("\r\n|\r|\n");
-        return lines.length;
+    protected static int countLines(String str) {
+        char[] charArray = str.toCharArray();
+        int result = 0;
+        for (char cur : charArray) {
+            if (cur == '\n') result++;
+        }
+        final int len = charArray.length;
+        if ((len > 0) && (charArray[len - 1] != '\n')) {
+            result++;
+        }
+        return result;
     }
-
-
 }
