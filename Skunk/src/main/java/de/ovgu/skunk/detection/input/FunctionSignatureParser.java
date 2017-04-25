@@ -596,6 +596,11 @@ public class FunctionSignatureParser {
         return filePath + ":" + startLoc;
     }
 
+    /**
+     * @param funcNode An XML node from the SrcML representation of a C file, as parsed by Skunk
+     * @return Start location of the function node.  <em>Note:</em> This count in 1-based, as is the value returned by
+     * {@link de.ovgu.skunk.detection.data.Method#start1}
+     */
     public static int parseFunctionStartLoc(Node funcNode) {
         int xmlStartLoc = Integer.parseInt((String) funcNode.getUserData("lineNumber"));
         // The srcML representation starts with a one-line XML declaration, which we subtract here.

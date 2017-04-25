@@ -74,8 +74,8 @@ public class FeatureReference implements Comparable<FeatureReference> {
     }
 
     /**
-     * @return <code>true</code> if the location of the feature constant also
-     * references other features; <code>false</code> otherwise
+     * @return <code>true</code> if the location of the feature constant also references other features;
+     * <code>false</code> otherwise
      */
     public Boolean IsCombined() {
         if (combinedWith.size() == 0)
@@ -260,7 +260,7 @@ public class FeatureReference implements Comparable<FeatureReference> {
 
     @Override
     public String toString() {
-        return String.format("FeatureReference [filePath=%s, feature=%s, start1=%s, end1=%s]", filePath, feature, start,
+        return String.format("FeatureReference [filePath=%s, feature=%s, start=%s, end=%s]", filePath, feature, start,
                 end);
     }
 }

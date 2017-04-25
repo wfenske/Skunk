@@ -9,7 +9,9 @@ import java.util.*;
  */
 public class Method {
     /**
-     * Compares functions by occurrence in their file, in ascending order.  Specifically, functions are first compared by the name of the file, then by line number.  Although unneccessary, they are also compared by function signature as a last resort.
+     * Compares functions by occurrence in their file, in ascending order.  Specifically, functions are first compared
+     * by the name of the file, then by line number.  Although unneccessary, they are also compared by function
+     * signature as a last resort.
      */
     public static final Comparator<? super Method> COMP_BY_OCCURRENCE = new Comparator<Method>() {
         @Override
@@ -126,23 +128,37 @@ public class Method {
             if (featureRef.nestingDepth > this.nestingDepthMax) this.nestingDepthMax = featureRef.nestingDepth;
             // calculate lines of feature code (if the feature is longer than
             // the method, use the method end1)
-            if (featureRef.end > this.end1)
-                this.lofc += this.end1 - featureRef.start + 1;
-            else this.lofc += featureRef.end - featureRef.start + 1;
-            de.ovgu.skunk.detection.data.File file = ctx.files.FindFile(featureRef.filePath);
+            final int lofcEnd = Math.min(featureRef.end, this.end1);
+            if (featureRef.start > lofcEnd) {
+                throw new RuntimeException("Internal error: attempt to assign feature reference that starts behind the function's end. function=" + this + "; featureRef=" + featureRef);
+            }
+            final int lofcStart = featureRef.start;
+            if (lofcStart < this.start1) {
+                throw new RuntimeException("Internal error: attempt to calculate LOCF for reference that starts before the function's start (LOFC count will be off). function=" + this + "; featureRef=" + featureRef);
+            }
+            if (lofcStart > lofcEnd) {
+                throw new RuntimeException("Internal error: attempt to calculate LOCF where start > end. function=" + this + "; featureRef=" + featureRef + "; lofcStart=" + lofcStart + "; lofcEnd=" + lofcEnd);
+            }
+
+            final int lofcIncrement = lofcEnd - lofcStart + 1;
+            this.lofc += lofcIncrement;
+            File file = ctx.files.FindFile(featureRef.filePath);
+            File file1 = ctx.files.FindFile(this.filePath);
+            if (file != file1) {
+                throw new RuntimeException("Looking at two different files (should be identical): " + file + ", " + file1);
+            }
+
             for (int current : file.emptyLines) {
                 if (featureRef.end > this.end1) {
                     if (current > featureRef.start && current < this.end1) this.lofc--;
                 } else if (current > featureRef.start && current < featureRef.end) this.lofc--;
             }
-            // add lines of visibile annotated code (amount of loc that is
-            // inside annotations) until end1 of feature constant or end1 of
+            // add lines of visible annotated code (amount of loc that is
+            // inside annotations) until end of feature constant or end of
             // method
-            for (int current = featureRef.start; current <= featureRef.end; current++) {
-                if (!(this.loac.contains(current))
-                        && !ctx.files.FindFile(this.filePath).emptyLines.contains(current))
+            for (int current = lofcStart; current <= lofcEnd; current++) {
+                if (!(this.loac.contains(current)) && !file.emptyLines.contains(current))
                     this.loac.add(current);
-                if (current == this.end1) break;
             }
         }
     }
@@ -159,8 +175,7 @@ public class Method {
     /**
      * Gets the lines of annotated code.
      *
-     * @return lines of visible annotated code (not counting doubles per
-     * feature,..)
+     * @return lines of visible annotated code (not counting doubles per feature,..)
      */
     public int GetLinesOfAnnotatedCode() {
         return this.processedLoac;

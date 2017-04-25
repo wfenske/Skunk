@@ -187,10 +187,18 @@ public class SrcMlFolderReader {
         }
         String filePath = featureRef.filePath;
         String fileDesignator = ctx.files.KeyFromFilePath(filePath);
-        // get or create method
-        Method method = parseAndInternMethod(funcNode, filePath, fileDesignator);
-        // add location to the method
-        method.AddFeatureConstant(featureRef);
+        // get or create function
+        final Method function = parseAndInternMethod(funcNode, filePath, fileDesignator);
+        final int existingFunctionStartLoc = function.start1;
+        final int actualFunctionStartLoc = FunctionSignatureParser.parseFunctionStartLoc(funcNode);
+
+        if (existingFunctionStartLoc != actualFunctionStartLoc) {
+            LOG.info("Ignoring feature reference " + featureRef + ". It refers to an alternative definition of the same function within the same file. We cannot currently handle this case. Existing function is " + function);
+            return;
+        }
+
+        // add location to the function
+        function.AddFeatureConstant(featureRef);
     }
 
     private Node findParentFunctionNode(Node annotationNode) {
@@ -212,7 +220,10 @@ public class SrcMlFolderReader {
      * <p>
      * <p>What we want to parse here, has the following XML form.</p>
      *
-     * @formatter:off <pre><function><type><name>int</name></type> <name>os_init_job_environment</name><parameter_list>(<param><decl><type><name>server_rec</name> *</type><name>server</name></decl></param>, <param><decl><type><specifier>const</specifier> <name>char</name> *</type><name>user_name</name></decl></param>, <param><decl><type><name>int</name></type> <name>one_process</name></decl></param>)</parameter_list>
+     * @formatter:off <pre><function><type><name>int</name></type> <name>os_init_job_environment</name><parameter_list>(<param><decl><type><name>server_rec</name>
+     * *</type><name>server</name></decl></param>, <param><decl><type><specifier>const</specifier> <name>char</name>
+     * *</type><name>user_name</name></decl></param>, <param><decl><type><name>int</name></type>
+     * <name>one_process</name></decl></param>)</parameter_list>
      * ... </function>
      * </pre>
      * <p>

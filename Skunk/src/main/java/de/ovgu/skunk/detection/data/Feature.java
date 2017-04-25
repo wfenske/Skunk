@@ -103,4 +103,9 @@ public class Feature implements Comparable<Feature> {
             return -1;
         else return 1;
     }
+
+    @Override
+    public String toString() {
+        return this.getClass().getSimpleName() + "{" + "Name='" + Name + '\'' + '}';
+    }
 }
