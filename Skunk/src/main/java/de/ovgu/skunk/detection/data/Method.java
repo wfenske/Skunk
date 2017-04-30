@@ -126,46 +126,64 @@ public class Method {
      * @param featureRef the loc
      */
     public void AddFeatureConstant(FeatureReference featureRef) {
-        if (!this.featureReferences.containsKey(featureRef.id)) {
-            // connect feature to the method
-            this.featureReferences.put(featureRef.id, featureRef.feature.Name);
-            featureRef.inMethod = this;
-            // assign nesting depth values
-            if (featureRef.nestingDepth > this.nestingDepthMax) this.nestingDepthMax = featureRef.nestingDepth;
-            // calculate lines of feature code (if the feature is longer than
-            // the method, use the method end1)
-            final int lofcEnd = Math.min(featureRef.end, this.end1);
-            if (featureRef.start > lofcEnd) {
-                throw new RuntimeException("Internal error: attempt to assign feature reference that starts behind the function's end. function=" + this + "; featureRef=" + featureRef);
-            }
-            final int lofcStart = featureRef.start;
-            if (lofcStart < this.start1) {
-                throw new RuntimeException("Internal error: attempt to calculate LOCF for reference that starts before the function's start (LOFC count will be off). function=" + this + "; featureRef=" + featureRef);
-            }
-            if (lofcStart > lofcEnd) {
-                throw new RuntimeException("Internal error: attempt to calculate LOCF where start > end. function=" + this + "; featureRef=" + featureRef + "; lofcStart=" + lofcStart + "; lofcEnd=" + lofcEnd);
-            }
+        if (this.featureReferences.containsKey(featureRef.id)) {
+            return;
+        }
 
-            final int lofcIncrement = lofcEnd - lofcStart + 1;
-            this.lofc += lofcIncrement;
-            File file = ctx.files.FindFile(featureRef.filePath);
-            File file1 = ctx.files.FindFile(this.filePath);
-            if (file != file1) {
-                throw new RuntimeException("Looking at two different files (should be identical): " + file + ", " + file1);
-            }
+        assertFeatureRefMatchesFile(featureRef);
 
-            for (int current : file.emptyLines) {
-                if (featureRef.end > this.end1) {
-                    if (current > featureRef.start && current < this.end1) this.lofc--;
-                } else if (current > featureRef.start && current < featureRef.end) this.lofc--;
-            }
-            // add lines of visible annotated code (amount of loc that is
-            // inside annotations) until end of feature constant or end of
-            // method
-            for (int current = lofcStart; current <= lofcEnd; current++) {
-                if (!(this.loac.contains(current)) && !file.emptyLines.contains(current))
-                    this.loac.add(current);
-            }
+        // connect feature to the method
+        this.featureReferences.put(featureRef.id, featureRef.feature.Name);
+        featureRef.inMethod = this;
+        // assign nesting depth values
+        if (featureRef.nestingDepth > this.nestingDepthMax) this.nestingDepthMax = featureRef.nestingDepth;
+        // calculate lines of feature code (if the feature is longer than
+        // the method, use the method end)
+        final int lofcEnd = Math.min(featureRef.end, this.end1);
+        if (featureRef.start > lofcEnd) {
+            throw new RuntimeException("Internal error: attempt to assign feature reference that starts behind the function's end. function=" + this + "; featureRef=" + featureRef);
+        }
+        final int lofcStart = featureRef.start;
+        if (lofcStart < this.start1) {
+            throw new RuntimeException("Internal error: attempt to calculate LOCF for reference that starts before the function's start (LOFC count will be off). function=" + this + "; featureRef=" + featureRef);
+        }
+        if (lofcStart > lofcEnd) {
+            throw new RuntimeException("Internal error: attempt to calculate LOCF where start > end. function=" + this + "; featureRef=" + featureRef + "; lofcStart=" + lofcStart + "; lofcEnd=" + lofcEnd);
+        }
+
+        final int lofcIncrement = computeLofcIncrement(lofcStart, lofcEnd);
+        this.lofc += lofcIncrement;
+        updateLoac(lofcEnd, lofcStart);
+    }
+
+    private void updateLoac(int lofcEnd, int lofcStart) {
+        // add lines of visible annotated code (amount of loc that is
+        // inside annotations) until end of feature constant or end of
+        // method
+        File file = ctx.files.FindFile(this.filePath);
+        for (int current = lofcStart; current <= lofcEnd; current++) {
+            if (!(this.loac.contains(current)) && !file.emptyLines.contains(current))
+                this.loac.add(current);
+        }
+    }
+
+    private int computeLofcIncrement(int lofcStart, int lofcEnd) {
+        int lofcIncrement = lofcEnd - lofcStart + 1;
+        File file = ctx.files.FindFile(this.filePath);
+        // Subtract empty lines (do not count them as feature code)
+        for (int current : file.emptyLines) {
+            if (current <= lofcStart) continue;
+            if (current >= lofcEnd) break;
+            lofcIncrement--;
+        }
+        return lofcIncrement;
+    }
+
+    private void assertFeatureRefMatchesFile(FeatureReference featureRef) {
+        File file = ctx.files.FindFile(this.filePath);
+        File fileOfFeatureRef = ctx.files.FindFile(featureRef.filePath);
+        if (file != fileOfFeatureRef) {
+            throw new RuntimeException("Looking at two different files (should be identical): " + file + ", " + fileOfFeatureRef);
         }
     }
 

@@ -57,7 +57,7 @@ public class File {
      */
     public int negationCount;
     /**
-     * The empty lines (whitespace or comments.
+     * The line numbers of empty lines (whitespace or comments), in ascending order.
      */
     public List<Integer> emptyLines;
 
@@ -171,8 +171,7 @@ public class File {
     /**
      * Gets the lines of annotated code.
      *
-     * @return lines of visible annotated code (not counting doubles per
-     * feature,..)
+     * @return lines of visible annotated code (not counting doubles per feature,..)
      */
     public int GetLinesOfAnnotatedCode() {
         return this.processedLoac;
