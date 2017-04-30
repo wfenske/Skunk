@@ -39,7 +39,7 @@ public class SrcMlFolderReader {
     public void ProcessFiles() {
         LOG.info("Processing SrcML files ...");
         readAllSrcMlDocs();
-        readAllFunctions();
+        internAllFunctions();
         processFeatureLocations();
         LOG.info("Done processing SrcML files.");
     }
@@ -270,14 +270,14 @@ public class SrcMlFolderReader {
         );
     }
 
-    private void readAllFunctions() {
+    private void internAllFunctions() {
         LOG.debug("Parsing all functions in all files.");
         for (File file : ctx.files.AllFiles()) {
-            readAllFunctionsInFile(file);
+            internAllFunctionsInFile(file);
         }
     }
 
-    private void readAllFunctionsInFile(File file) {
+    public void internAllFunctionsInFile(File file) {
         LOG.debug("Parsing functions in file " + file);
         String filePath = file.filePath;
         String fileDesignator = ctx.files.KeyFromFilePath(filePath);

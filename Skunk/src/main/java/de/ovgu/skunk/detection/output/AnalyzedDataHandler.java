@@ -416,7 +416,7 @@ public class AnalyzedDataHandler {
     private boolean skipMethod(Method method) {
         final DetectionConfig conf = ctx.config;
         if (conf.Method_LoacToLocRatio_Mand
-                && ((float) method.GetLinesOfAnnotatedCode() / (float) method.loc) < conf.Method_LoacToLocRatio) {
+                && ((float) method.GetLinesOfAnnotatedCode() / (float) method.getNetLoc()) < conf.Method_LoacToLocRatio) {
             return true;
         }
         if (conf.Method_NumberOfFeatureConstants_Mand

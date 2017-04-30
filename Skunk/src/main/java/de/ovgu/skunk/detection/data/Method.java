@@ -43,9 +43,15 @@ public class Method {
      */
     public int end1;
     /**
-     * The lines of code of the method.
+     * The lines of code of the method, including empty lines.
      */
-    public int loc;
+    private int grossLoc;
+
+    /**
+     * The lines of code of the function, excluding empty lines.
+     */
+    private int netLoc = -1;
+
     /**
      * The lines of feature code inside the method.
      */
@@ -90,19 +96,19 @@ public class Method {
      *
      * @param signature the signature
      * @param start1    the starting line of the function within it's file (first line in the file is counted as 1)
-     * @param loc       length of the function in lines of code
+     * @param grossLoc  length of the function in lines of code, may include empty lines
      */
-    public Method(Context ctx, String signature, String filePath, int start1, int loc
+    public Method(Context ctx, String signature, String filePath, int start1, int grossLoc
                   //, String sourceCode
     ) {
         this.ctx = ctx;
         this.functionSignatureXml = signature;
         this.start1 = start1;
-        this.loc = loc;
+        this.grossLoc = grossLoc;
         this.nestingSum = 0;
         this.nestingDepthMax = 0;
         // do not count start1 line while calculating the end1
-        this.end1 = start1 + loc - 1;
+        this.end1 = start1 + grossLoc - 1;
         // initialize loc
         this.lofc = 0;
         this.featureReferences = new LinkedHashMap<>();
@@ -246,11 +252,24 @@ public class Method {
         this.nestingSum = res;
     }
 
-    public void SetLoc() {
+    public void InitializeNetLocMetric() {
         de.ovgu.skunk.detection.data.File file = ctx.files.FindFile(this.filePath);
+        this.netLoc = this.grossLoc;
         for (int empty : file.emptyLines) {
-            if (empty >= this.start1 && empty <= this.end1) this.loc--;
+            if (empty >= this.start1 && empty <= this.end1) this.netLoc--;
         }
+    }
+
+    public int getNetLoc() {
+        int r = this.netLoc;
+        if (r < 0) {
+            throw new AssertionError("Attempt to read net LOC before initializing it.");
+        }
+        return this.netLoc;
+    }
+
+    public int getGrossLoc() {
+        return this.grossLoc;
     }
 
     public String FilePathForDisplay() {

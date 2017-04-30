@@ -44,7 +44,7 @@ public enum MethodMetricsColumns implements CsvColumnValueProvider<Method, Conte
         @Override
         public Float csvColumnValue(Method m, Context ctx) {
             float featLocSmell = ctx.config.Method_LoacToLocRatio_Weight
-                    * (((float) m.GetLinesOfAnnotatedCode() / (float) m.loc) * m.numberFeatureLocations);
+                    * (((float) m.GetLinesOfAnnotatedCode() / (float) m.getNetLoc()) * m.numberFeatureLocations);
             return featLocSmell;
         }
     },
@@ -67,7 +67,7 @@ public enum MethodMetricsColumns implements CsvColumnValueProvider<Method, Conte
     LOC {
         @Override
         public Integer csvColumnValue(Method m, Context ctx) {
-            return m.loc;
+            return m.getNetLoc();
         }
     },
     LOAC {

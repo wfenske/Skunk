@@ -34,8 +34,7 @@ public class MethodCollection {
     /**
      * Adds the method to file.
      *
-     * @param fileName the name of the srcML source file (usually something like
-     *                 <code>&quot;alloc.c.xml&quot;</code>)
+     * @param fileName the name of the srcML source file (usually something like <code>&quot;alloc.c.xml&quot;</code>)
      * @param method   the method
      */
     public void AddFunctionToFile(String fileName, Method method) {
@@ -52,8 +51,7 @@ public class MethodCollection {
      * Gets the methods of file.
      *
      * @param fileName the file name
-     * @return A possibly empty collection of the methods within the file. This
-     * collection should not be modified.
+     * @return A possibly empty collection of the methods within the file. This collection should not be modified.
      */
     public Collection<Method> GetMethodsOfFile(String fileName) {
         Map<String, Method> methods = findMethodsForFile(fileName);
@@ -65,10 +63,9 @@ public class MethodCollection {
     /**
      * Gets the method of a file based on the function signature
      *
-     * @param fileDesignator    a string denoting the source file. This can either be the name
-     *                          of the SrcML file or the key generated from this file name,
-     *                          pointing to the actual C file from which the SrcML was
-     *                          generated.
+     * @param fileDesignator    a string denoting the source file. This can either be the name of the SrcML file or the
+     *                          key generated from this file name, pointing to the actual C file from which the SrcML
+     *                          was generated.
      * @param functionSignature the function signature
      * @return the method, if found, <code>null</code> otherwise
      */
@@ -91,7 +88,7 @@ public class MethodCollection {
      */
     public void PostAction() {
         for (Method meth : AllMethods()) {
-            meth.SetLoc();
+            meth.InitializeNetLocMetric();
             meth.SetNegationCount();
             meth.SetNumberOfFeatureConstantsNonDup();
             meth.SetNumberOfFeatureLocations();

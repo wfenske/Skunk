@@ -166,7 +166,7 @@ public class Detector {
         final DetectionConfig config = ctx.config;
 
         if (!Double.isNaN(config.Method_LofcToLocRatio)) {
-            double minLofc = (config.Method_LofcToLocRatio * meth.loc);
+            double minLofc = (config.Method_LofcToLocRatio * meth.getNetLoc());
             if (meth.lofc >= minLofc) {
                 for (UUID id : meth.featureReferences.keySet()) {
                     FeatureReference loc = ctx.featureExpressions.GetFeatureConstant(meth.featureReferences.get(id),
@@ -188,7 +188,7 @@ public class Detector {
         final DetectionConfig config = ctx.config;
 
         if (!Double.isNaN(config.Method_LoacToLocRatio)) {
-            double minLoac = (config.Method_LoacToLocRatio * meth.loc);
+            double minLoac = (config.Method_LoacToLocRatio * meth.getNetLoc());
             if (meth.GetLinesOfAnnotatedCode() >= minLoac) {
                 for (UUID id : meth.featureReferences.keySet()) {
                     FeatureReference loc = ctx.featureExpressions.GetFeatureConstant(meth.featureReferences.get(id),
@@ -682,8 +682,7 @@ public class Detector {
      * @param <K> the key type
      * @param <V> the value type
      * @param map the map
-     * @return A fresh copy of the given map, where entries are sorted by their
-     * values
+     * @return A fresh copy of the given map, where entries are sorted by their values
      */
     public <K extends Comparable<K>, V extends Comparable<V>> Map<K, V> sortByValues(Map<K, V> map) {
         List<Map.Entry<K, V>> entries = new ArrayList<>(map.entrySet());
