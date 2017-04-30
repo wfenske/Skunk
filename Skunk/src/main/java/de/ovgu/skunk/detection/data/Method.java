@@ -153,10 +153,10 @@ public class Method {
 
         final int lofcIncrement = computeLofcIncrement(lofcStart, lofcEnd);
         this.lofc += lofcIncrement;
-        updateLoac(lofcEnd, lofcStart);
+        updateLoac(lofcStart, lofcEnd);
     }
 
-    private void updateLoac(int lofcEnd, int lofcStart) {
+    private void updateLoac(int lofcStart, int lofcEnd) {
         // add lines of visible annotated code (amount of loc that is
         // inside annotations) until end of feature constant or end of
         // method
