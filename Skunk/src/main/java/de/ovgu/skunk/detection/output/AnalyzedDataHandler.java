@@ -288,8 +288,8 @@ public class AnalyzedDataHandler {
             completeLoac += loacs.get(file).size();
         // calculate percentages
         loacPercentage = completeLoac * 100.0f / ctx.featureExpressions.GetLoc();
-        percentOfLocations = countLocations * 100 / ctx.featureExpressions.numberOfFeatureConstantReferences;
-        percentOfConstants = constants.size() * 100 / ctx.featureExpressions.GetFeatures().size();
+        percentOfLocations = countLocations * 100.0f / ctx.featureExpressions.numberOfFeatureConstantReferences;
+        percentOfConstants = constants.size() * 100.0f / ctx.featureExpressions.GetFeatures().size();
         // Complete overview
         res += "\r\n\r\n\r\n>>> Complete Overview\r\n";
         res += "Number of features: \t" + constants.size() + " (" + percentOfConstants + "% of "
