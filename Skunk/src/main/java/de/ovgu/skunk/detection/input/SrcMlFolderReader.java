@@ -60,10 +60,11 @@ public class SrcMlFolderReader {
         for (File file : allFiles) {
             readAndRememberSrcmlFile(file.filePath);
             if ((++processed) % 10 == 0) {
-                LOG.info("Parsed SrcML file " + processed + "/" + numAllFiles + " (" + (numAllFiles - processed)
+                LOG.debug("Parsed SrcML file " + processed + "/" + numAllFiles + " (" + (numAllFiles - processed)
                         + " to go).");
             }
         }
+        LOG.info("Parsed " + processed + " SrcML file(s).");
     }
 
     public Document readAndRememberSrcmlFile(String filePath) {
