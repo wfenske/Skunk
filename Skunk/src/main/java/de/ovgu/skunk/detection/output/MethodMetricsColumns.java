@@ -105,5 +105,14 @@ public enum MethodMetricsColumns implements CsvColumnValueProvider<Method, Conte
         public Integer csvColumnValue(Method m, Context ctx) {
             return m.nestingSum;
         }
+    },
+    /**
+     * Number of negated feature constants
+     */
+    NONEG {
+        @Override
+        public Integer csvColumnValue(Method m, Context ctx) {
+            return m.negationCount;
+        }
     };
 }
