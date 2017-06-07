@@ -265,7 +265,7 @@ public class Method {
             res += constant.nestingDepth;
             if (constant.nestingDepth < minNesting) minNesting = constant.nestingDepth;
         }
-        // substract the complete minNesting depth (for each added location)
+        // subtract the complete minNesting depth (for each added location)
         res -= this.featureReferences.size() * minNesting;
         this.nestingSum = res;
     }
