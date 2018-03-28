@@ -131,17 +131,25 @@ public class FunctionSignatureParser {
      * @return
      * @throws FunctionSignatureParseException
      */
-    private String parseRegularFunctionSignature() throws FunctionSignatureParseException {
+    private ParsedFunctionSignature parseRegularFunctionSignature() throws FunctionSignatureParseException {
         result = new StringBuilder();
         parseUpToIncludingFunctionName();
 
         // Handle parameter list
         result.append('(');
-        parseRegularFunctionParamList();
+        Node lastNode = parseRegularFunctionParamList();
         result.append(')');
         // End parameter list
 
-        return postProcessSignature(result.toString());
+        int startOfSignature = get1BasedNodeLineNumber(functionNode);
+        int endOfSignature = get1BasedNodeLineNumber(lastNode);
+        int loc = endOfSignature - startOfSignature;
+        if (loc < 1) {
+            LOG.info("Computed signature LOC " + loc + " for function " + result.toString() + ". Adjusting to 1.");
+            loc = 1;
+        }
+
+        return postProcessSignature(result.toString(), loc);
     }
 
     private void parseUpToIncludingFunctionName() throws FunctionSignatureParseException {
@@ -176,31 +184,37 @@ public class FunctionSignatureParser {
 //            }
 //        }
 
-    private void parseRegularFunctionParamList() throws FunctionSignatureParseException {
+    private Node parseRegularFunctionParamList() throws FunctionSignatureParseException {
         Node parameterList = getNodeOrDie(functionNode, "./parameter_list");
+        Node lastNode = parameterList;
         List<Node> params = getPossiblyEmptyNodeList(parameterList, "./param");
         Iterator<Node> iParam = params.iterator();
         if (iParam.hasNext()) {
             // parse first parameter
-            parseParam(iParam.next());
+            lastNode = parseParam(iParam.next());
             // parse rest of parameters, if any
             while (iParam.hasNext()) {
                 result.append(',').append(' ');
-                parseParam(iParam.next());
+                lastNode = parseParam(iParam.next());
             }
         }
+        return lastNode;
     }
 
-    private void parseParam(Node param) throws FunctionSignatureParseException {
+    private Node parseParam(Node param) throws FunctionSignatureParseException {
         Node typeDeclarationNode = getNodeOrDie(param, "./decl/type");
+        Node lastNode = typeDeclarationNode;
         Optional<Node> optParamTypeName = getOptionalNode(typeDeclarationNode, "./name");
         if (optParamTypeName.isPresent()) {
             Node paramTypeName = optParamTypeName.get();
+            lastNode = paramTypeName;
             String paramTypeNameString = paramTypeName.getTextContent();
             // NOTE, 2017-03-06, wf: By making the parameter name optional, we effectively also allow K&R style function definitions
-            Optional<Node> paramName = getOptionalNode(param, "./decl/name");
-            if (paramName.isPresent()) {
-                String paramNameString = paramName.get().getTextContent();
+            Optional<Node> optParamName = getOptionalNode(param, "./decl/name");
+            if (optParamName.isPresent()) {
+                Node paramName = optParamName.get();
+                lastNode = paramName;
+                String paramNameString = paramName.getTextContent();
                 result.append(paramTypeNameString).append(' ').append(paramNameString);
             } else {
                 result.append(paramTypeNameString);
@@ -210,9 +224,11 @@ public class FunctionSignatureParser {
             String typeDeclarationText = typeDeclarationNode.getTextContent();
             result.append(typeDeclarationText);
         }
+
+        return lastNode;
     }
 
-    public String parseFunctionSignatureQuickAndDirty() {
+    private ParsedFunctionSignature parseFunctionSignatureQuickAndDirty() {
         // get the text content of the node (signature + method content),
         // and remove method content until beginning of block
         //deleteComments();
@@ -255,7 +271,13 @@ public class FunctionSignatureParser {
         // Delete line and block comments (yeah, there are some cases where these are part of the function signature ...)
         String noComments = removeComments(noBodyResult, true);
 
-        return postProcessSignature(noComments);
+        int loc = SrcMlFolderReader.countLines(noBodyResult);
+        if (loc < 1) {
+            LOG.info("Computed signature LOC " + loc + " for function " + noComments + ". Adjusting to 1.");
+            loc = 1;
+        }
+
+        return postProcessSignature(noComments, loc);
     }
 
     static String removeComments(String inputString, boolean removeStringAndCharLiterals) {
@@ -437,7 +459,7 @@ public class FunctionSignatureParser {
 //        return false;
 //    }
 
-    public String parseFunctionSignature() {
+    public ParsedFunctionSignature parseFunctionSignature() {
         // get the text content of the node (signature + method content),
         // and remove method content until beginning of block
 
@@ -452,7 +474,7 @@ public class FunctionSignatureParser {
              * { ... }
              */
             try {
-                String signature = parseRegularFunctionSignature();
+                ParsedFunctionSignature signature = parseRegularFunctionSignature();
                 if (debugParseExceptions) {
                     LOG.debug("Successfully parsed function signature using XPath: `" + signature + "' parsed from " + prettyPrintFunctionNodeOrChild(functionNode));
                 }
@@ -531,11 +553,11 @@ public class FunctionSignatureParser {
         return result.toString();
     }
 
-    private String postProcessSignature(String signature) {
+    private ParsedFunctionSignature postProcessSignature(String signature, int loc) {
         // Squeeze multiple space signs into a single space
         String collapsedSpace = signature.replaceAll("\\s+", " ");
         String trimmed = collapsedSpace.trim();
-        return trimmed;
+        return new ParsedFunctionSignature(trimmed, loc);
     }
 
     private Node getNodeOrDie(Node nodeOfInterest, String xpathExpression) throws FunctionSignatureParseException {
@@ -602,7 +624,11 @@ public class FunctionSignatureParser {
      * {@link de.ovgu.skunk.detection.data.Method#start1}
      */
     public static int parseFunctionStartLoc(Node funcNode) {
-        int xmlStartLoc = Integer.parseInt((String) funcNode.getUserData("lineNumber"));
+        return get1BasedNodeLineNumber(funcNode);
+    }
+
+    private static int get1BasedNodeLineNumber(Node node) {
+        int xmlStartLoc = Integer.parseInt((String) node.getUserData("lineNumber"));
         // The srcML representation starts with a one-line XML declaration, which we subtract here.
         return xmlStartLoc - 1;
     }

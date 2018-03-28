@@ -48,6 +48,11 @@ public class Method {
     private int grossLoc;
 
     /**
+     * The lines of code of just the signature, including empty lines, line breaks, etc.
+     */
+    private int signatureGrossLinesOfCode;
+
+    /**
      * The lines of code of the function, excluding empty lines.
      */
     private int netLoc = -1;
@@ -94,12 +99,16 @@ public class Method {
     /**
      * Method.
      *
-     * @param signature the signature
-     * @param start1    the starting line of the function within it's file (first line in the file is counted as 1)
-     * @param grossLoc  length of the function in lines of code, may include empty lines
+     * @param signature                 the signature
+     * @param start1                    the starting line of the function within it's file (first line in the file is
+     *                                  counted as 1)
+     * @param grossLoc                  length of the function in lines of code, may include empty lines
+     * @param signatureGrossLinesOfCode length of the function signature in lines of code, as it appears in the file
+     *                                  (including line breaks, comments, etc.)
      */
     public Method(Context ctx, String signature, String filePath, int start1, int grossLoc
                   //, String sourceCode
+            , int signatureGrossLinesOfCode
     ) {
         this.ctx = ctx;
         this.functionSignatureXml = signature;
@@ -118,6 +127,7 @@ public class Method {
         this.negationCount = 0;
         this.filePath = filePath;
         //this.sourceCode = sourceCode;
+        this.signatureGrossLinesOfCode = signatureGrossLinesOfCode;
     }
 
     /**
@@ -288,6 +298,13 @@ public class Method {
 
     public int getGrossLoc() {
         return this.grossLoc;
+    }
+
+    /**
+     * @return The lines of code of just the signature, including empty lines, line breaks, etc.
+     */
+    public int getSignatureGrossLinesOfCode() {
+        return this.signatureGrossLinesOfCode;
     }
 
     public String FilePathForDisplay() {

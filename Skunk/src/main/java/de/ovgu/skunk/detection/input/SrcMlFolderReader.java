@@ -241,8 +241,8 @@ public class SrcMlFolderReader {
      * @return the method parsed from this Node, never <code>null</code>
      */
     private Method parseAndInternMethod(Node funcNode, String filePath, String fileDesignator) {
-        String functionSignature = parseFunctionSignature(funcNode, filePath);
-        Method function = ctx.functions.FindFunction(fileDesignator, functionSignature);
+        ParsedFunctionSignature functionSignature = parseFunctionSignature(funcNode, filePath);
+        Method function = ctx.functions.FindFunction(fileDesignator, functionSignature.signature);
         if (function == null) {
             function = parseFunctionUsingSignature(funcNode, filePath, fileDesignator, functionSignature);
             ctx.functions.AddFunctionToFile(fileDesignator, function);
@@ -257,16 +257,16 @@ public class SrcMlFolderReader {
     }
 
     private Method parseFunction(Node funcNode, String filePath, String fileDesignator) {
-        String functionSignature = parseFunctionSignature(funcNode, filePath);
+        ParsedFunctionSignature functionSignature = parseFunctionSignature(funcNode, filePath);
         return parseFunctionUsingSignature(funcNode, filePath, fileDesignator, functionSignature);
     }
 
-    private Method parseFunctionUsingSignature(Node funcNode, String filePath, String fileDesignator, String functionSignature) {
+    private Method parseFunctionUsingSignature(Node funcNode, String filePath, String fileDesignator, ParsedFunctionSignature functionSignature) {
         // Line number in the XML file.  Note, this count starts from 1, not from 0.
         int cStartLoc = FunctionSignatureParser.parseFunctionStartLoc(funcNode);
         String textContent = funcNode.getTextContent();
         int len = countLines(textContent);
-        return new Method(ctx, functionSignature, filePath, cStartLoc, len
+        return new Method(ctx, functionSignature.signature, filePath, cStartLoc, len, functionSignature.originalLinesOfCode
                 //, textContent
         );
     }
@@ -298,7 +298,7 @@ public class SrcMlFolderReader {
      * @param functionNode the SrcML XML node containing the function definition
      * @return the function's signature
      */
-    public static String parseFunctionSignature(Node functionNode, String path) {
+    public static ParsedFunctionSignature parseFunctionSignature(Node functionNode, String path) {
         FunctionSignatureParser parser = new FunctionSignatureParser(functionNode, path);
         return parser.parseFunctionSignature();
     }
@@ -312,7 +312,7 @@ public class SrcMlFolderReader {
      * @param str the string
      * @return number of lines
      */
-    protected static int countLines(String str) {
+    public static int countLines(String str) {
         char[] charArray = str.toCharArray();
         int result = 0;
         for (char cur : charArray) {
