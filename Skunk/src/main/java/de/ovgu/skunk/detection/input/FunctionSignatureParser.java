@@ -555,9 +555,92 @@ public class FunctionSignatureParser {
 
     private ParsedFunctionSignature postProcessSignature(String signature, int loc) {
         // Squeeze multiple space signs into a single space
-        String collapsedSpace = signature.replaceAll("\\s+", " ");
-        String trimmed = collapsedSpace.trim();
+        String trimmed = normalizeWhitespace(signature);
         return new ParsedFunctionSignature(trimmed, loc);
+    }
+
+    protected static String normalizeWhitespace(String signature) {
+        if (signature == null || signature.isEmpty()) return signature;
+
+        char[] chars = new char[signature.length()];
+        signature.getChars(0, signature.length(), chars, 0);
+
+        // Trim whitespace off beginning and end
+        int last = signature.length() - 1;
+        while (last >= 0) {
+            if (Character.isWhitespace(chars[last])) {
+                last--;
+            } else break;
+        }
+
+        StringBuilder result = new StringBuilder(last + 1);
+
+        int i = 0;
+        // Last character that we inserted into the result
+        char lastChar = ' ';
+        while (i <= last) {
+            char c = chars[i++];
+
+            // Convert all whitespace characters into a single space
+            if (Character.isWhitespace(c)) c = ' ';
+
+            boolean requireSpaceAsNextChar = false;
+            switch (c) {
+                // No space after another space, and no space after opening parenthesis
+                case ' ':
+                    switch (lastChar) {
+                        case ' ':
+                        case '(':
+                            continue;
+                    }
+                    result.append(c);
+                    lastChar = c;
+                    break;
+                case '(': // No space before an opening parenthesis
+                    if (lastChar == ' ') {
+                        int len = result.length();
+                        if (len > 0) {
+                            result.deleteCharAt(len - 1);
+                        }
+                    }
+                    result.append(c);
+                    lastChar = c;
+                    break;
+                // Remove potential space character before a comma or a closing parenthesis,
+                // and require a following space
+                case ',':
+                case ')':
+                    if (lastChar == ' ') {
+                        int len = result.length();
+                        if (len > 0) {
+                            result.deleteCharAt(len - 1);
+                        }
+                    }
+                    result.append(c);
+                    lastChar = c;
+                    requireSpaceAsNextChar = true;
+                    break;
+                case '*': // Require spaces before and after '*'
+                    if (lastChar != ' ') {
+                        result.append(' ');
+                    }
+                    result.append(c);
+                    lastChar = c;
+                    requireSpaceAsNextChar = true;
+                    break;
+                default:
+                    result.append(c);
+                    lastChar = c;
+            }
+
+
+            if (requireSpaceAsNextChar && (i <= last)) {
+                result.append(' ');
+                lastChar = ' ';
+            }
+        }
+
+        return result.toString();
     }
 
     private Node getNodeOrDie(Node nodeOfInterest, String xpathExpression) throws FunctionSignatureParseException {
