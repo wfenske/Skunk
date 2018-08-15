@@ -3,6 +3,8 @@ package de.ovgu.skunk.detection.data;
 import de.ovgu.skunk.util.FileUtils;
 
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Representation of a function in the analyzed source code
@@ -25,6 +27,8 @@ public class Method {
         }
     };
 
+    private static final Pattern FUNCTION_NAME = Pattern.compile("^.*\\b(\\w+)\\s*\\(");
+
     private final Context ctx;
 //    /**
 //     * Source code of the functions, as returned from the srcml function node
@@ -34,6 +38,12 @@ public class Method {
      * The function signature.
      */
     public String functionSignatureXml;
+
+    /**
+     * The part of the function signature that constitutes the function's name
+     */
+    public String functionName;
+
     /**
      * The first line of the function in the file, counted from 1.
      */
@@ -70,8 +80,7 @@ public class Method {
      */
     public int nestingDepthMax;
     /**
-     * The lines of visible annotated code. (amount of loc that is inside
-     * annotations)
+     * The lines of visible annotated code. (amount of loc that is inside annotations)
      */
     public List<Integer> loac;
     private int processedLoac;
@@ -128,6 +137,12 @@ public class Method {
         this.filePath = filePath;
         //this.sourceCode = sourceCode;
         this.signatureGrossLinesOfCode = signatureGrossLinesOfCode;
+        Matcher nameMatcher = FUNCTION_NAME.matcher(functionSignatureXml);
+        if (nameMatcher.find()) {
+            this.functionName = nameMatcher.group(1);
+        } else {
+            this.functionName = functionSignatureXml;
+        }
     }
 
     /**
@@ -230,8 +245,7 @@ public class Method {
     }
 
     /**
-     * Gets the number of feature locations. A feature location is a complete
-     * set of feature constants on one line.
+     * Gets the number of feature locations. A feature location is a complete set of feature constants on one line.
      *
      * @return the number of feature occurences in the method
      */
