@@ -15,17 +15,32 @@ public enum MethodMetricsColumns implements CsvColumnValueProvider<Method, Conte
             //return m.FilePathForDisplay();
             return m.ProjectRelativeFilePath();
         }
+
+        @Override
+        public String parseCsvColumnValue(String value) {
+            return value;
+        }
     },
     Start {
         @Override
         public Integer csvColumnValue(Method m, Context ctx) {
             return m.start1;
         }
+
+        @Override
+        public Integer parseCsvColumnValue(String value) {
+            return Integer.valueOf(value);
+        }
     },
     FUNCTION_SIGNATURE {
         @Override
         public String csvColumnValue(Method m, Context ctx) {
             return m.functionSignatureXml;
+        }
+
+        @Override
+        public String parseCsvColumnValue(String value) {
+            return value;
         }
     },
     ABSmell {
@@ -39,6 +54,11 @@ public enum MethodMetricsColumns implements CsvColumnValueProvider<Method, Conte
             float sum = (featLocSmell + featConstSmell + nestSumSmell);
             return sum;
         }
+
+        @Override
+        public Float parseCsvColumnValue(String value) {
+            return Float.valueOf(value);
+        }
     },
     LocationSmell {
         @Override
@@ -46,6 +66,11 @@ public enum MethodMetricsColumns implements CsvColumnValueProvider<Method, Conte
             float featLocSmell = ctx.config.Method_LoacToLocRatio_Weight
                     * (((float) m.GetLinesOfAnnotatedCode() / (float) m.getNetLoc()) * m.numberFeatureLocations);
             return featLocSmell;
+        }
+
+        @Override
+        public Float parseCsvColumnValue(String value) {
+            return Float.valueOf(value);
         }
     },
     ConstantsSmell {
@@ -55,6 +80,11 @@ public enum MethodMetricsColumns implements CsvColumnValueProvider<Method, Conte
                     * ((float) m.GetFeatureConstantCount() / (float) m.numberFeatureLocations);
             return featConstSmell;
         }
+
+        @Override
+        public Float parseCsvColumnValue(String value) {
+            return Float.valueOf(value);
+        }
     },
     NestingSmell {
         @Override
@@ -63,11 +93,21 @@ public enum MethodMetricsColumns implements CsvColumnValueProvider<Method, Conte
                     * ((float) m.nestingSum / (float) m.numberFeatureLocations);
             return nestSumSmell;
         }
+
+        @Override
+        public Float parseCsvColumnValue(String value) {
+            return Float.valueOf(value);
+        }
     },
     LOC {
         @Override
         public Integer csvColumnValue(Method m, Context ctx) {
             return m.getNetLoc();
+        }
+
+        @Override
+        public Integer parseCsvColumnValue(String value) {
+            return Integer.valueOf(value);
         }
     },
     LOAC {
@@ -75,11 +115,21 @@ public enum MethodMetricsColumns implements CsvColumnValueProvider<Method, Conte
         public Integer csvColumnValue(Method m, Context ctx) {
             return m.GetLinesOfAnnotatedCode();
         }
+
+        @Override
+        public Integer parseCsvColumnValue(String value) {
+            return Integer.valueOf(value);
+        }
     },
     LOFC {
         @Override
         public Long csvColumnValue(Method m, Context ctx) {
             return m.lofc;
+        }
+
+        @Override
+        public Integer parseCsvColumnValue(String value) {
+            return Integer.valueOf(value);
         }
     },
     NOFL {
@@ -87,11 +137,21 @@ public enum MethodMetricsColumns implements CsvColumnValueProvider<Method, Conte
         public Integer csvColumnValue(Method m, Context ctx) {
             return m.numberFeatureLocations;
         }
+
+        @Override
+        public Integer parseCsvColumnValue(String value) {
+            return Integer.valueOf(value);
+        }
     },
     NOFC_Dup {
         @Override
         public Integer csvColumnValue(Method m, Context ctx) {
             return m.GetFeatureConstantCount();
+        }
+
+        @Override
+        public Integer parseCsvColumnValue(String value) {
+            return Integer.valueOf(value);
         }
     },
     NOFC_NonDup {
@@ -99,11 +159,21 @@ public enum MethodMetricsColumns implements CsvColumnValueProvider<Method, Conte
         public Integer csvColumnValue(Method m, Context ctx) {
             return m.numberFeatureConstantsNonDup;
         }
+
+        @Override
+        public Integer parseCsvColumnValue(String value) {
+            return Integer.valueOf(value);
+        }
     },
     NONEST {
         @Override
         public Integer csvColumnValue(Method m, Context ctx) {
             return m.nestingSum;
+        }
+
+        @Override
+        public Integer parseCsvColumnValue(String value) {
+            return Integer.valueOf(value);
         }
     },
     /**
@@ -114,5 +184,12 @@ public enum MethodMetricsColumns implements CsvColumnValueProvider<Method, Conte
         public Integer csvColumnValue(Method m, Context ctx) {
             return m.negationCount;
         }
+
+        @Override
+        public Integer parseCsvColumnValue(String value) {
+            return Integer.valueOf(value);
+        }
     };
+
+    public abstract <T> T parseCsvColumnValue(String value);
 }

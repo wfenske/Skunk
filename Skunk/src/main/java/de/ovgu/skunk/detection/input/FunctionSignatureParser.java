@@ -294,8 +294,7 @@ public class FunctionSignatureParser {
         final boolean keepStringLiterals = !removeStringAndCharLiterals;
         final boolean keepCharLiterals = !removeStringAndCharLiterals;
 
-        char[] input = new char[inputString.length()];
-        inputString.getChars(0, input.length, input, 0);
+        char[] input = toChars(inputString);
         StringBuilder result = new StringBuilder();
 
         int iRead = 0;
@@ -449,6 +448,13 @@ public class FunctionSignatureParser {
         return result.toString();
     }
 
+    private static char[] toChars(String s) {
+        final int len = s.length();
+        final char[] result = new char[len];
+        s.getChars(0, len, result, 0);
+        return result;
+    }
+
 //    static boolean isBeginningOfLine(char[] input, int iRead) {
 //        if (iRead == 0) return true;
 //        final int posBefore = iRead - 1;
@@ -562,8 +568,7 @@ public class FunctionSignatureParser {
     protected static String normalizeWhitespace(String signature) {
         if (signature == null || signature.isEmpty()) return signature;
 
-        char[] chars = new char[signature.length()];
-        signature.getChars(0, signature.length(), chars, 0);
+        char[] chars = toChars(signature);
 
         // Trim whitespace off beginning and end
         int last = signature.length() - 1;
