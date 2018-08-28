@@ -18,9 +18,9 @@ public class CsvEnumUtils {
     public static <TEnum extends Enum<?>> Object[] headerRow(Class<? extends TEnum> columnsClass) {
         TEnum[] enumConstants = columnsClass.getEnumConstants();
         if (enumConstants == null) throw new IllegalArgumentException("Not an enum type: " + columnsClass);
-        final int len = enumConstants.length;
-        Object[] r = new Object[len];
-        for (int i = 0; i < len; i++) {
+        final int numColumns = enumConstants.length;
+        Object[] r = new Object[numColumns];
+        for (int i = 0; i < numColumns; i++) {
             TEnum e = enumConstants[i];
             r[i] = e.name();
         }
@@ -34,6 +34,23 @@ public class CsvEnumUtils {
             result[i] = names[i].toString();
         }
         return result;
+    }
+
+    public static <TEnum extends Enum<?>> void validateHeaderRow(Class<? extends TEnum> columnsClass, String[] headerLine) {
+        TEnum[] enumConstants = columnsClass.getEnumConstants();
+        if (enumConstants == null) throw new IllegalArgumentException("Not an enum type: " + columnsClass);
+        final int minCols = enumConstants.length;
+
+        if (headerLine.length < minCols) {
+            throw new RuntimeException("Not enough columns. Expected at least " + minCols + ", got " + headerLine.length);
+        }
+
+        for (int col = 0; col < minCols; col++) {
+            String expectedColName = enumConstants[col].name();
+            if (!headerLine[col].equalsIgnoreCase(expectedColName)) {
+                throw new RuntimeException("Column name mismatch. Expected column " + col + " to be " + expectedColName + ", got: " + headerLine[col]);
+            }
+        }
     }
 
     /**
