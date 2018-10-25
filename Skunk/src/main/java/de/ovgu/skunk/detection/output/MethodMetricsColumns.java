@@ -192,4 +192,10 @@ public enum MethodMetricsColumns implements CsvColumnValueProvider<Method, Conte
     };
 
     public abstract <T> T parseCsvColumnValue(String value);
+
+    /**
+     * Basename of the CSV file that will hold this information.  It will be located within the results directory, in a
+     * project- and snapshot-specific directory, such as <code>results/busybox/2000-04-08</code>
+     */
+    public static final String FILE_BASENAME = "ABRes.csv";
 }
