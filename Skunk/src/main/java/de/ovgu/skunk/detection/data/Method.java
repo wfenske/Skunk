@@ -1,6 +1,7 @@
 package de.ovgu.skunk.detection.data;
 
 import de.ovgu.skunk.util.FileUtils;
+import org.apache.log4j.Logger;
 
 import java.util.*;
 import java.util.regex.Matcher;
@@ -10,6 +11,7 @@ import java.util.regex.Pattern;
  * Representation of a function in the analyzed source code
  */
 public class Method {
+    private static final Logger LOG = Logger.getLogger(Method.class);
     /**
      * Compares functions by occurrence in their file, in ascending order.  Specifically, functions are first compared
      * by the name of the file, then by line number.  Although unneccessary, they are also compared by function
@@ -143,6 +145,19 @@ public class Method {
         } else {
             this.functionName = functionSignatureXml;
         }
+    }
+
+    public void maybeAdjustMethodEndBasedOnNextFunction(Method nextFunction) {
+        final int nextStart = nextFunction.start1;
+        if (this.end1 < nextStart) return;
+
+        final int newEnd1 = nextStart - 2;
+
+        LOG.debug("Adjusting improbable function end position of " + this + " from " + end1 + " to " + newEnd1);
+
+        int lenReduction = end1 - newEnd1;
+        this.end1 = newEnd1;
+        this.grossLoc = Math.max(grossLoc - lenReduction, 1);
     }
 
     /**

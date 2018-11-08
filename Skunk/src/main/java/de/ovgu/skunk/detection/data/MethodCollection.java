@@ -18,8 +18,7 @@ public class MethodCollection {
      * </p>
      * <p>
      * <p>
-     * Both, files and methods per file are returned in the order they were
-     * inserted.
+     * Both, files and methods per file are returned in the order they were inserted.
      * </p>
      */
     private Map<String, Map<String, Method>> methodsPerFile;
@@ -87,6 +86,8 @@ public class MethodCollection {
      * Calculate metrics for all metrics after finishing the collection
      */
     public void PostAction() {
+        // Maybe adjust function end positions that src2srcml got wrong.
+        adjustImprobableFunctionEndPositions();
         for (Method meth : AllMethods()) {
             meth.InitializeNetLocMetric();
             meth.SetNegationCount();
@@ -115,6 +116,22 @@ public class MethodCollection {
         }
         String xmlFeatures = stream.toXML(methodsForSerialization);
         return xmlFeatures;
+    }
+
+    public void adjustImprobableFunctionEndPositions() {
+        for (Map<String, Method> methodsInFile : methodsPerFile.values()) {
+            List<Method> functionsByStartPos = new ArrayList<>();
+            functionsByStartPos.addAll(methodsInFile.values());
+            Collections.sort(functionsByStartPos, Method.COMP_BY_OCCURRENCE);
+
+            Method previousFunc = null;
+            for (Method nextFunc : functionsByStartPos) {
+                if (previousFunc != null) {
+                    previousFunc.maybeAdjustMethodEndBasedOnNextFunction(nextFunc);
+                }
+                previousFunc = nextFunc;
+            }
+        }
     }
 
     public Iterable<Method> AllMethods() {
