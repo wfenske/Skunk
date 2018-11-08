@@ -181,14 +181,19 @@ public class Method {
         // the method, use the method end)
         final int lofcEnd = Math.min(featureRef.end, this.end1);
         if (featureRef.start > lofcEnd) {
-            throw new RuntimeException("Internal error: attempt to assign feature reference that starts behind the function's end. function=" + this + "; featureRef=" + featureRef);
+            // NOTE, 2018-11-09, wf: It sometimes happens that src2srcml puts the end of a function way past its actual location.
+            // We adjust for that, but the error error is still in the DOM, an may crop up again here.
+            LOG.warn("Attempt to assign feature reference that starts behind the function's end. Might be due to a parsing error of the function's end. Aborting. function=" + this + "; featureRef=" + featureRef);
+            return;
         }
         final int lofcStart = featureRef.start;
         if (lofcStart < this.start1) {
             throw new RuntimeException("Internal error: attempt to calculate LOCF for reference that starts before the function's start (LOFC count will be off). function=" + this + "; featureRef=" + featureRef);
         }
         if (lofcStart > lofcEnd) {
-            throw new RuntimeException("Internal error: attempt to calculate LOCF where start > end. function=" + this + "; featureRef=" + featureRef + "; lofcStart=" + lofcStart + "; lofcEnd=" + lofcEnd);
+            // NOTE, 2018-11-09, wf: See my comment above.
+            LOG.warn("Attempt to calculate LOCF where start > end. Aborting. function=" + this + "; featureRef=" + featureRef + "; lofcStart=" + lofcStart + "; lofcEnd=" + lofcEnd);
+            return;
         }
 
         final int lofcIncrement = computeLofcIncrement(lofcStart, lofcEnd);

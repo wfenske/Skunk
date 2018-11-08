@@ -87,7 +87,6 @@ public class MethodCollection {
      */
     public void PostAction() {
         // Maybe adjust function end positions that src2srcml got wrong.
-        adjustImprobableFunctionEndPositions();
         for (Method meth : AllMethods()) {
             meth.InitializeNetLocMetric();
             meth.SetNegationCount();
@@ -118,19 +117,14 @@ public class MethodCollection {
         return xmlFeatures;
     }
 
-    public void adjustImprobableFunctionEndPositions() {
-        for (Map<String, Method> methodsInFile : methodsPerFile.values()) {
-            List<Method> functionsByStartPos = new ArrayList<>();
-            functionsByStartPos.addAll(methodsInFile.values());
-            Collections.sort(functionsByStartPos, Method.COMP_BY_OCCURRENCE);
-
-            Method previousFunc = null;
-            for (Method nextFunc : functionsByStartPos) {
-                if (previousFunc != null) {
-                    previousFunc.maybeAdjustMethodEndBasedOnNextFunction(nextFunc);
-                }
-                previousFunc = nextFunc;
-            }
+    public static void adjustImprobableFunctionEndPositions(Method[] functionsByStartPos) {
+        int len = functionsByStartPos.length;
+        if (len < 2) return;
+        Method previousFunc = functionsByStartPos[0];
+        for (int i = 1; i < len; i++) {
+            Method nextFunc = functionsByStartPos[i];
+            previousFunc.maybeAdjustMethodEndBasedOnNextFunction(nextFunc);
+            previousFunc = nextFunc;
         }
     }
 

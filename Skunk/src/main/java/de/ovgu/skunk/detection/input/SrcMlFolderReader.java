@@ -216,8 +216,8 @@ public class SrcMlFolderReader {
 
     /**
      * <p>Parses the function definition contained within the SrcML XML node,
-     * creates a Skunk Method object from it and stores it properly in the
-     * respective collections that need to know about the function.</p>
+     * creates a Skunk Method object from it and stores it properly in the respective collections that need to know
+     * about the function.</p>
      * <p>
      * <p>What we want to parse here, has the following XML form.</p>
      *
@@ -284,12 +284,14 @@ public class SrcMlFolderReader {
         String fileDesignator = ctx.files.KeyFromFilePath(filePath);
         Document doc = srcmlFilesByFileKey.get(fileDesignator);
         NodeList functions = doc.getElementsByTagName("function");
-        int numFunctions = functions.getLength();
+        final int numFunctions = functions.getLength();
         LOG.debug("Found " + numFunctions + " functions in `" + fileDesignator + "'.");
+        Method[] parsedFunctions = new Method[numFunctions];
         for (int i = 0; i < numFunctions; i++) {
             Node funcNode = functions.item(i);
-            parseAndInternMethod(funcNode, filePath, fileDesignator);
+            parsedFunctions[i] = parseAndInternMethod(funcNode, filePath, fileDesignator);
         }
+        MethodCollection.adjustImprobableFunctionEndPositions(parsedFunctions);
     }
 
     /**
@@ -304,9 +306,9 @@ public class SrcMlFolderReader {
     }
 
     /**
-     * Count the number of lines in a string. A line is interpreted to end at
-     * a linefeed character (&quot;\n&quot;). An empty string is defined to have no lines. If the last line does not
-     * end in a linefeed character, the return value is nevertheless increased by 1.  In other words, both
+     * Count the number of lines in a string. A line is interpreted to end at a linefeed character (&quot;\n&quot;). An
+     * empty string is defined to have no lines. If the last line does not end in a linefeed character, the return value
+     * is nevertheless increased by 1.  In other words, both
      * <code>foo\nbar\n</code> and  <code>foo\nbar</code> are considered as having 2 lines.
      *
      * @param str the string
