@@ -25,7 +25,7 @@ public class Method {
             if (cmp != 0) return cmp;
             cmp = f1.start1 - f2.start1;
             if (cmp != 0) return cmp;
-            return f1.functionSignatureXml.compareTo(f2.functionSignatureXml);
+            return f1.uniqueFunctionSignature.compareTo(f2.uniqueFunctionSignature);
         }
     };
 
@@ -37,9 +37,15 @@ public class Method {
 //     */
 //    private final String sourceCode;
     /**
-     * The function signature.
+     * The original function signature, as it appears in the file
      */
-    public String functionSignatureXml;
+    public String originalFunctionSignature;
+
+    /**
+     * The function signature, possibly with a suffix in case that a function of the same name appears multiple times in
+     * the same file
+     */
+    public String uniqueFunctionSignature;
 
     /**
      * The part of the function signature that constitutes the function's name
@@ -122,7 +128,8 @@ public class Method {
             , int signatureGrossLinesOfCode
     ) {
         this.ctx = ctx;
-        this.functionSignatureXml = signature;
+        this.originalFunctionSignature = signature;
+        this.uniqueFunctionSignature = signature;
         this.start1 = start1;
         this.grossLoc = grossLoc;
         this.nestingSum = 0;
@@ -139,11 +146,11 @@ public class Method {
         this.filePath = filePath;
         //this.sourceCode = sourceCode;
         this.signatureGrossLinesOfCode = signatureGrossLinesOfCode;
-        Matcher nameMatcher = FUNCTION_NAME.matcher(functionSignatureXml);
+        Matcher nameMatcher = FUNCTION_NAME.matcher(originalFunctionSignature);
         if (nameMatcher.find()) {
             this.functionName = nameMatcher.group(1);
         } else {
-            this.functionName = functionSignatureXml;
+            this.functionName = originalFunctionSignature;
         }
     }
 
@@ -354,7 +361,7 @@ public class Method {
 
     @Override
     public String toString() {
-        return String.format("Function [%s /* %s:%d,%d */]", functionSignatureXml, FilePathForDisplay(),
+        return String.format("Function [%s /* %s:%d,%d */]", uniqueFunctionSignature, FilePathForDisplay(),
                 start1, end1);
     }
 
@@ -377,8 +384,8 @@ public class Method {
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + ((filePath == null) ? 0 : filePath.hashCode());
-        result = prime * result + ((functionSignatureXml == null) ? 0 : functionSignatureXml.hashCode());
+        result = prime * result + filePath.hashCode();
+        result = prime * result + uniqueFunctionSignature.hashCode();
         return result;
     }
 
@@ -394,9 +401,7 @@ public class Method {
         if (filePath == null) {
             if (other.filePath != null) return false;
         } else if (!filePath.equals(other.filePath)) return false;
-        if (functionSignatureXml == null) {
-            if (other.functionSignatureXml != null) return false;
-        } else if (!functionSignatureXml.equals(other.functionSignatureXml)) return false;
+        if (!uniqueFunctionSignature.equals(other.uniqueFunctionSignature)) return false;
         return true;
     }
 

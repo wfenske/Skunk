@@ -189,7 +189,7 @@ public class SrcMlFolderReader {
         String filePath = featureRef.filePath;
         String fileDesignator = ctx.files.KeyFromFilePath(filePath);
         // get or create function
-        final Method function = parseAndInternMethod(funcNode, filePath, fileDesignator);
+        final Method function = findFunctionUsingNode(funcNode, filePath, fileDesignator);
         final int existingFunctionStartLoc = function.start1;
         final int actualFunctionStartLoc = FunctionSignatureParser.parseFunctionStartLoc(funcNode);
 
@@ -212,6 +212,22 @@ public class SrcMlFolderReader {
             parent = parent.getParentNode();
         }
         return parent;
+    }
+
+    private Method findFunctionUsingNode(Node funcNode, String filePath, String fileDesignator) {
+        ParsedFunctionSignature functionSignature = parseFunctionSignature(funcNode, filePath);
+        Method function = ctx.functions.FindFunction(fileDesignator, functionSignature);
+        return function;
+    }
+
+    private Method parseFunction(Node funcNode, String filePath) {
+        String fileDesignator = ctx.files.KeyFromFilePath(filePath);
+        return parseFunction(funcNode, filePath, fileDesignator);
+    }
+
+    private Method parseFunction(Node funcNode, String filePath, String fileDesignator) {
+        ParsedFunctionSignature functionSignature = parseFunctionSignature(funcNode, filePath);
+        return parseFunctionUsingSignature(funcNode, filePath, fileDesignator, functionSignature);
     }
 
     /**
@@ -240,33 +256,10 @@ public class SrcMlFolderReader {
      * @param fileDesignator
      * @return the method parsed from this Node, never <code>null</code>
      */
-    private Method parseAndInternMethod(Node funcNode, String filePath, String fileDesignator) {
-        ParsedFunctionSignature functionSignature = parseFunctionSignature(funcNode, filePath);
-        Method function = ctx.functions.FindFunction(fileDesignator, functionSignature.signature);
-        if (function == null) {
-            function = parseFunctionUsingSignature(funcNode, filePath, fileDesignator, functionSignature);
-            ctx.functions.AddFunctionToFile(fileDesignator, function);
-        }
-        ctx.files.InternFunctionIntoExistingFile(fileDesignator, function);
-        return function;
-    }
-
-    public Method parseFunction(Node funcNode, String filePath) {
-        String fileDesignator = ctx.files.KeyFromFilePath(filePath);
-        return parseFunction(funcNode, filePath, fileDesignator);
-    }
-
-    private Method parseFunction(Node funcNode, String filePath, String fileDesignator) {
-        ParsedFunctionSignature functionSignature = parseFunctionSignature(funcNode, filePath);
-        return parseFunctionUsingSignature(funcNode, filePath, fileDesignator, functionSignature);
-    }
-
     private Method parseFunctionUsingSignature(Node funcNode, String filePath, String fileDesignator, ParsedFunctionSignature functionSignature) {
-        // Line number in the XML file.  Note, this count starts from 1, not from 0.
-        int cStartLoc = FunctionSignatureParser.parseFunctionStartLoc(funcNode);
         String textContent = funcNode.getTextContent();
         int len = countLines(textContent);
-        return new Method(ctx, functionSignature.signature, filePath, cStartLoc, len, functionSignature.originalLinesOfCode
+        return new Method(ctx, functionSignature.signature, filePath, functionSignature.cStartLoc, len, functionSignature.originalLinesOfCode
                 //, textContent
         );
     }
@@ -283,15 +276,67 @@ public class SrcMlFolderReader {
         String filePath = file.filePath;
         String fileDesignator = ctx.files.KeyFromFilePath(filePath);
         Document doc = srcmlFilesByFileKey.get(fileDesignator);
-        NodeList functions = doc.getElementsByTagName("function");
-        final int numFunctions = functions.getLength();
-        LOG.debug("Found " + numFunctions + " functions in `" + fileDesignator + "'.");
-        Method[] parsedFunctions = new Method[numFunctions];
+        Method[] parsedFunctions = parseAllFunctionsInFile(doc, filePath);
+        internNewlyReadFunctions(parsedFunctions, fileDesignator);
+    }
+
+    public Method[] parseAllFunctionsInFile(Document doc, String filePath) {
+        NodeList functionNodes = doc.getElementsByTagName("function");
+        final int numFunctions = functionNodes.getLength();
+        Method[] result = new Method[numFunctions];
         for (int i = 0; i < numFunctions; i++) {
-            Node funcNode = functions.item(i);
-            parsedFunctions[i] = parseAndInternMethod(funcNode, filePath, fileDesignator);
+            Node funcNode = functionNodes.item(i);
+            Method func = parseFunction(funcNode, filePath);
+            result[i] = func;
         }
-        MethodCollection.adjustImprobableFunctionEndPositions(parsedFunctions);
+        LOG.debug("Found " + numFunctions + " functions in `" + filePath + "'.");
+        adjustImprobableFunctionEndPositions(result);
+        adjustDuplicateFunctionSignatures(result);
+        return result;
+    }
+
+    private void internNewlyReadFunctions(Method[] functions, String fileDesignator) {
+        for (Method function : functions) {
+//            Method existingFunction = ctx.functions.FindFunction(fileDesignator, function.functionSignatureXml);
+//            if (existingFunction != null) {
+//                throw new RuntimeException("Internal error: Function already exists. New function: " + function + " Existing function: " + existingFunction);
+//            }
+            ctx.functions.AddFunctionToFile(fileDesignator, function);
+            ctx.files.InternFunctionIntoExistingFile(fileDesignator, function);
+        }
+    }
+
+    private static void adjustImprobableFunctionEndPositions(Method[] functionsByStartPos) {
+        int len = functionsByStartPos.length;
+        if (len < 2) return;
+        Method previousFunc = functionsByStartPos[0];
+        for (int i = 1; i < len; i++) {
+            Method nextFunc = functionsByStartPos[i];
+            previousFunc.maybeAdjustMethodEndBasedOnNextFunction(nextFunc);
+            previousFunc = nextFunc;
+        }
+    }
+
+    private void adjustDuplicateFunctionSignatures(Method[] result) {
+        final boolean logDebug = LOG.isDebugEnabled();
+        Map<String, Integer> numberOfOccurencesForSameSignature = new HashMap<>();
+        final int numSignatures = result.length;
+        for (int i = 0; i < numSignatures; i++) {
+            final Method f = result[i];
+            final String originalFunctionSignature = f.originalFunctionSignature;
+            final Integer numberOfOccurrences = numberOfOccurencesForSameSignature.get(originalFunctionSignature);
+            if (numberOfOccurrences == null) {
+                numberOfOccurencesForSameSignature.put(originalFunctionSignature, 1);
+            } else {
+                final int newNumberOfOccurrences = numberOfOccurrences + 1;
+                numberOfOccurencesForSameSignature.put(originalFunctionSignature, newNumberOfOccurrences);
+                final String uniqueFunctionSignature = originalFunctionSignature + " #" + newNumberOfOccurrences;
+                if (logDebug) {
+                    LOG.debug("Adjusting signature of " + f + " to " + uniqueFunctionSignature);
+                }
+                f.uniqueFunctionSignature = uniqueFunctionSignature;
+            }
+        }
     }
 
     /**

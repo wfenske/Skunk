@@ -35,7 +35,7 @@ public enum MethodMetricsColumns implements CsvColumnValueProvider<Method, Conte
     FUNCTION_SIGNATURE {
         @Override
         public String csvColumnValue(Method m, Context ctx) {
-            return m.functionSignatureXml;
+            return m.uniqueFunctionSignature;
         }
 
         @Override

@@ -149,7 +149,7 @@ public class FunctionSignatureParser {
             loc = 1;
         }
 
-        return postProcessSignature(result.toString(), loc);
+        return postProcessSignature(result.toString(), startOfSignature, loc);
     }
 
     private void parseUpToIncludingFunctionName() throws FunctionSignatureParseException {
@@ -277,7 +277,9 @@ public class FunctionSignatureParser {
             loc = 1;
         }
 
-        return postProcessSignature(noComments, loc);
+        int cStartLoc = FunctionSignatureParser.parseFunctionStartLoc(functionNode);
+
+        return postProcessSignature(noComments, cStartLoc, loc);
     }
 
     static String removeComments(String inputString, boolean removeStringAndCharLiterals) {
@@ -559,10 +561,11 @@ public class FunctionSignatureParser {
         return result.toString();
     }
 
-    private ParsedFunctionSignature postProcessSignature(String signature, int loc) {
+    private ParsedFunctionSignature postProcessSignature(String signature, int cStartLoc, int loc) {
         // Squeeze multiple space signs into a single space
         String trimmed = normalizeWhitespace(signature);
-        return new ParsedFunctionSignature(trimmed, loc);
+        // Determine start location
+        return new ParsedFunctionSignature(trimmed, cStartLoc, loc);
     }
 
     protected static String normalizeWhitespace(String signature) {

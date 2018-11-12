@@ -12,6 +12,11 @@
         </layout>
     </appender>
 
+    <category name="de.ovgu.skunk.detection.input.SrcMlFolderReader">
+        <priority value="DEBUG"/>
+        <appender-ref ref="stderr"/>
+    </category>
+
     <category name="de.ovgu.skunk">
         <priority value="INFO"/>
         <appender-ref ref="stderr"/>

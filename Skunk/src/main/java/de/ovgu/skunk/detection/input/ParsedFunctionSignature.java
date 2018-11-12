@@ -7,14 +7,20 @@ public class ParsedFunctionSignature {
     /**
      * Name of function along with return type and parameter list
      */
-    final String signature;
+    public final String signature;
     /**
      * Number of lines the function signature originally comprised
      */
-    final int originalLinesOfCode;
+    public final int originalLinesOfCode;
 
-    public ParsedFunctionSignature(String signature, int originalLinesOfCode) {
+    /**
+     * Line number in the XML file.  Note, this count starts from 1, not from 0.
+     */
+    public final int cStartLoc;
+
+    public ParsedFunctionSignature(String signature, int cStartLoc, int originalLinesOfCode) {
         this.signature = signature;
+        this.cStartLoc = cStartLoc;
         this.originalLinesOfCode = originalLinesOfCode;
     }
 }

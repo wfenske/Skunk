@@ -1,6 +1,8 @@
 package de.ovgu.skunk.detection.data;
 
 import com.thoughtworks.xstream.XStream;
+import de.ovgu.skunk.detection.input.ParsedFunctionSignature;
+import de.ovgu.skunk.util.LinkedGroupingListMap;
 
 import java.io.File;
 import java.util.*;
@@ -21,7 +23,7 @@ public class MethodCollection {
      * Both, files and methods per file are returned in the order they were inserted.
      * </p>
      */
-    private Map<String, Map<String, Method>> methodsPerFile;
+    private Map<String, LinkedGroupingListMap<String, Method>> methodsPerFile;
 
     /**
      * Instantiates a new method collection.
@@ -37,26 +39,14 @@ public class MethodCollection {
      * @param method   the method
      */
     public void AddFunctionToFile(String fileName, Method method) {
-        Map<String, Method> methods = findMethodsForFile(fileName);
-        if (methods == null) {
-            methods = new LinkedHashMap<>();
+        LinkedGroupingListMap<String, Method> methodsBySignature = findMethodsForFile(fileName);
+        if (methodsBySignature == null) {
+            methodsBySignature = new LinkedGroupingListMap<>();
             String fileKey = FileCollection.KeyFromFilePath(fileName);
-            methodsPerFile.put(fileKey, methods);
+            methodsPerFile.put(fileKey, methodsBySignature);
         }
-        methods.put(method.functionSignatureXml, method);
-    }
 
-    /**
-     * Gets the methods of file.
-     *
-     * @param fileName the file name
-     * @return A possibly empty collection of the methods within the file. This collection should not be modified.
-     */
-    public Collection<Method> GetMethodsOfFile(String fileName) {
-        Map<String, Method> methods = findMethodsForFile(fileName);
-        if (methods != null)
-            return methods.values();
-        else return Collections.emptyList();
+        methodsBySignature.put(method.originalFunctionSignature, method);
     }
 
     /**
@@ -68,16 +58,27 @@ public class MethodCollection {
      * @param functionSignature the function signature
      * @return the method, if found, <code>null</code> otherwise
      */
-    public Method FindFunction(String fileDesignator, String functionSignature) {
+    public Method FindFunction(String fileDesignator, ParsedFunctionSignature functionSignature) {
         // get the method based on the method signature
-        Map<String, Method> methods = findMethodsForFile(fileDesignator);
-        if (methods != null) {
-            return methods.get(functionSignature);
+        LinkedGroupingListMap<String, Method> functionsForFile = findMethodsForFile(fileDesignator);
+        if (functionsForFile == null) {
+            return null;
         }
+
+        List<Method> functionsWithSameSignature = functionsForFile.get(functionSignature.signature);
+        if (functionsWithSameSignature == null) {
+            return null;
+        }
+
+        final int signatureStart = functionSignature.cStartLoc;
+        for (Method f : functionsWithSameSignature) {
+            if (f.start1 == signatureStart) return f;
+        }
+
         return null;
     }
 
-    private Map<String, Method> findMethodsForFile(String fileDesignator) {
+    private LinkedGroupingListMap<String, Method> findMethodsForFile(String fileDesignator) {
         String key = FileCollection.KeyFromFilePath(fileDesignator);
         return methodsPerFile.get(key);
     }
@@ -106,30 +107,22 @@ public class MethodCollection {
             meth.loac.clear();
         }
         XStream stream = new XStream();
-        Map<String, Collection<Method>> methodsForSerialization = new LinkedHashMap<>();
-        for (Map.Entry<String, Map<String, Method>> e : methodsPerFile.entrySet()) {
+        Map<String, List<Method>> methodsForSerialization = new LinkedHashMap<>();
+        for (Map.Entry<String, LinkedGroupingListMap<String, Method>> e : methodsPerFile.entrySet()) {
             String filename = e.getKey();
-            Map<String, Method> methodBySig = e.getValue();
-            List<Method> methodList = new ArrayList<>(methodBySig.values());
+            LinkedGroupingListMap<String, Method> methodBySig = e.getValue();
+            List<Method> methodList = new ArrayList<>();
+            for (List<Method> methods : methodBySig.getMap().values()) {
+                methodList.addAll(methods);
+            }
             methodsForSerialization.put(filename, methodList);
         }
         String xmlFeatures = stream.toXML(methodsForSerialization);
         return xmlFeatures;
     }
 
-    public static void adjustImprobableFunctionEndPositions(Method[] functionsByStartPos) {
-        int len = functionsByStartPos.length;
-        if (len < 2) return;
-        Method previousFunc = functionsByStartPos[0];
-        for (int i = 1; i < len; i++) {
-            Method nextFunc = functionsByStartPos[i];
-            previousFunc.maybeAdjustMethodEndBasedOnNextFunction(nextFunc);
-            previousFunc = nextFunc;
-        }
-    }
-
     public Iterable<Method> AllMethods() {
-        final Iterator<Map<String, Method>> methodsBySigIt = methodsPerFile.values().iterator();
+        final Iterator<LinkedGroupingListMap<String, Method>> methodsBySigIt = methodsPerFile.values().iterator();
         return new Iterable<Method>() {
             @Override
             public Iterator<Method> iterator() {
@@ -149,11 +142,13 @@ public class MethodCollection {
                     private Iterator<Method> ensureMethodsIt() {
                         if (!methodsIt.hasNext()) {
                             while (methodsBySigIt.hasNext()) {
-                                Map<String, Method> methodsInNextFile = methodsBySigIt.next();
-                                if (!methodsInNextFile.isEmpty()) {
-                                    methodsIt = methodsInNextFile.values().iterator();
-                                    break;
+                                LinkedGroupingListMap<String, Method> methodsInNextFile = methodsBySigIt.next();
+                                List<Method> values = new ArrayList<>();
+                                for (List<Method> functions : methodsInNextFile.getMap().values()) {
+                                    values.addAll(functions);
                                 }
+                                methodsIt = values.iterator();
+                                break;
                             }
                         }
                         return methodsIt;
@@ -177,10 +172,10 @@ public class MethodCollection {
         XStream stream = new XStream();
         Map<String, List<Method>> deserializedMethods = (Map<String, List<Method>>) stream.fromXML(xmlFile);
         for (Map.Entry<String, List<Method>> e : deserializedMethods.entrySet()) {
-            final Map<String, Method> methods = new LinkedHashMap<>();
-            methodsPerFile.put(e.getKey(), methods);
-            for (Method method : e.getValue()) {
-                methods.put(method.functionSignatureXml, method);
+            final LinkedGroupingListMap<String, Method> methodsBySignature = new LinkedGroupingListMap<>();
+            methodsPerFile.put(e.getKey(), methodsBySignature);
+            for (Method f : e.getValue()) {
+                methodsBySignature.put(f.originalFunctionSignature, f);
             }
         }
     }

@@ -129,8 +129,7 @@ public class AnalyzedDataHandler {
     }
 
     /**
-     * Creates the overview metrics for each attribute, and saves it to the
-     * output result
+     * Creates the overview metrics for each attribute, and saves it to the output result
      *
      * @param results the results
      * @return the attribute overview results
@@ -185,8 +184,7 @@ public class AnalyzedDataHandler {
     }
 
     /**
-     * Sorts the results per feature, and presents the locations and reason for
-     * each corresponding feature
+     * Sorts the results per feature, and presents the locations and reason for each corresponding feature
      *
      * @param results the detection results
      * @return the results per feature
@@ -219,8 +217,7 @@ public class AnalyzedDataHandler {
     }
 
     /**
-     * Sorts the results per Method and returns it in a string per
-     * file/method/cnstant
+     * Sorts the results per Method and returns it in a string per file/method/cnstant
      *
      * @param results the detection results
      * @return the results per feature
@@ -243,7 +240,7 @@ public class AnalyzedDataHandler {
             }
             if (!key.inMethod.equals(currentMethod)) {
                 currentMethod = key.inMethod;
-                res += "\r\nMethod: " + currentMethod.functionSignatureXml + "\r\n";
+                res += "\r\nMethod: " + currentMethod.uniqueFunctionSignature + "\r\n";
                 res += "Start\t\tEnd\t\tReason\r\n";
             }
             res += key.start + "\t\t" + key.end + "\t\t" + results.get(key).toString() + "\r\n";
@@ -407,8 +404,7 @@ public class AnalyzedDataHandler {
     }
 
     /**
-     * Skip the method for csv file creation depending on the mandatory settings
-     * of the configuration
+     * Skip the method for csv file creation depending on the mandatory settings of the configuration
      *
      * @param method the method
      * @return true, if method does not fulfill mandatory settings
@@ -430,8 +426,7 @@ public class AnalyzedDataHandler {
     }
 
     /**
-     * Skip the method for CSV file creation depending on the mandatory settings
-     * of the configuration
+     * Skip the method for CSV file creation depending on the mandatory settings of the configuration
      *
      * @param file the file to test
      * @return true, if method does not fulfill mandatory settings
@@ -449,8 +444,7 @@ public class AnalyzedDataHandler {
     }
 
     /**
-     * Skip the feature for csv file creation depending on the mandatory
-     * settings of the configuration
+     * Skip the feature for csv file creation depending on the mandatory settings of the configuration
      *
      * @param feat the feature
      * @return true, if feature does not fulfill mandatory settings
