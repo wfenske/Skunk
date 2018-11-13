@@ -359,6 +359,21 @@ public class Method {
         return FileUtils.projectRelativePathFromCppstatsSrcMlPath(filePath);
     }
 
+    /**
+     * @return <code>true</code> iff there are other, alternative function definitions in the same file that have the same signature
+     */
+    public boolean hasAlternativeDefinitions() {
+        return !originalFunctionSignature.equals(uniqueFunctionSignature);
+    }
+
+    public boolean hasSameOriginalSignature(Method other) {
+        return this.originalFunctionSignature.equals(other.originalFunctionSignature);
+    }
+
+    public boolean hasSameName(Method other) {
+        return this.functionName.equals(other.functionName);
+    }
+
     @Override
     public String toString() {
         return String.format("Function [%s /* %s:%d,%d */]", uniqueFunctionSignature, FilePathForDisplay(),

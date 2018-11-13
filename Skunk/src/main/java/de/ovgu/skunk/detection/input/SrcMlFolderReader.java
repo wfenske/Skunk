@@ -1,6 +1,7 @@
 package de.ovgu.skunk.detection.input;
 
 import de.ovgu.skunk.detection.data.*;
+import de.ovgu.skunk.util.GroupingListMap;
 import org.apache.log4j.Logger;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
@@ -14,6 +15,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -245,7 +247,7 @@ public class SrcMlFolderReader {
      * </pre>
      * <p>
      * The original C code looks like this:
-     * <p>
+     *
      * <pre>
      * int os_init_job_environment(server_rec *server, const char *user_name, int one_process) { ... }
      *
@@ -317,20 +319,21 @@ public class SrcMlFolderReader {
         }
     }
 
-    private void adjustDuplicateFunctionSignatures(Method[] result) {
+    private void adjustDuplicateFunctionSignatures(Method[] functionsByOccurrence) {
         final boolean logDebug = LOG.isDebugEnabled();
-        Map<String, Integer> numberOfOccurencesForSameSignature = new HashMap<>();
-        final int numSignatures = result.length;
-        for (int i = 0; i < numSignatures; i++) {
-            final Method f = result[i];
-            final String originalFunctionSignature = f.originalFunctionSignature;
-            final Integer numberOfOccurrences = numberOfOccurencesForSameSignature.get(originalFunctionSignature);
-            if (numberOfOccurrences == null) {
-                numberOfOccurencesForSameSignature.put(originalFunctionSignature, 1);
-            } else {
-                final int newNumberOfOccurrences = numberOfOccurrences + 1;
-                numberOfOccurencesForSameSignature.put(originalFunctionSignature, newNumberOfOccurrences);
-                final String uniqueFunctionSignature = originalFunctionSignature + " #" + newNumberOfOccurrences;
+        GroupingListMap<String, Method> functionsByOriginalSignature = new GroupingListMap<>();
+        for (Method f : functionsByOccurrence) {
+            functionsByOriginalSignature.put(f.originalFunctionSignature, f);
+        }
+
+        for (Map.Entry<String, List<Method>> e : functionsByOriginalSignature.getMap().entrySet()) {
+            final List<Method> functionsWithSameSignature = e.getValue();
+            final int len = functionsWithSameSignature.size();
+            if (len == 1) continue;
+            final String originalSignature = e.getKey();
+            for (int i = 0, count = 1; i < len; i++, count++) {
+                Method f = functionsWithSameSignature.get(i);
+                final String uniqueFunctionSignature = originalSignature + " #" + count;
                 if (logDebug) {
                     LOG.debug("Adjusting signature of " + f + " to " + uniqueFunctionSignature);
                 }
@@ -338,6 +341,7 @@ public class SrcMlFolderReader {
             }
         }
     }
+
 
     /**
      * Extracts the function signature from a SrcML XML function node
