@@ -24,15 +24,26 @@ import java.util.Map;
 public class SrcMlFolderReader {
     private static Logger LOG = Logger.getLogger(SrcMlFolderReader.class);
     private final Context ctx;
+    private final PositionalXmlReader reader;
     Map<String, Document> srcmlFilesByFileKey = new HashMap<>();
 
     /**
      * Instantiates a new srcML folder reader.
      *
-     * @param ctx
+     * @param ctx Context object
      */
     public SrcMlFolderReader(Context ctx) {
+        this(ctx, new PositionalXmlReader());
+    }
+
+    /**
+     * Instantiates a new srcML folder reader using the given XML reader
+     *
+     * @param ctx Context object
+     */
+    public SrcMlFolderReader(Context ctx, PositionalXmlReader reader) {
         this.ctx = ctx;
+        this.reader = reader;
     }
 
     /**
@@ -134,9 +145,9 @@ public class SrcMlFolderReader {
         }
     }
 
-    public static Document readSrcmlFile(InputStream fileInput, String filePath) {
+    public Document readSrcmlFile(InputStream fileInput, String filePath) {
         try {
-            return PositionalXmlReader.readXML(fileInput);
+            return reader.readXML(fileInput);
         } catch (IOException e) {
             throw new RuntimeException("I/O exception reading stream of file " + filePath, e);
         } catch (SAXException e) {

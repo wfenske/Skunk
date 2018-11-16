@@ -25,91 +25,110 @@ public class PositionalXmlReader {
      */
     final static String LINE_NUMBER_KEY_NAME = "lineNumber";
     final static String END_NUMBER_KEY_NAME = "endlineNumber";
+    private SAXParser parser;
+    private DocumentBuilder docBuilder;
+    private Document doc;
+
+    private static class SkunkXmlHandler extends DefaultHandler {
+        private final Stack<Element> elementStack = new Stack<Element>();
+        private final StringBuilder textBuffer = new StringBuilder();
+        private final Document doc;
+
+        private Locator locator;
+
+        public SkunkXmlHandler(Document doc) {
+            this.doc = doc;
+        }
+
+        @Override
+        public void setDocumentLocator(final Locator locator) {
+            this.locator = locator; // Save the locator, so that it can be
+            // used later for line tracking when
+            // traversing nodes.
+        }
+
+        @Override
+        public void startElement(final String uri, final String localName,
+                                 final String qName, final Attributes attributes)
+                throws SAXException {
+            addTextIfNeeded();
+            final Element el = doc.createElement(qName);
+            for (int i = 0; i < attributes.getLength(); i++) {
+                el.setAttribute(attributes.getQName(i),
+                        attributes.getValue(i));
+            }
+            el.setUserData(LINE_NUMBER_KEY_NAME, this.locator.getLineNumber(), null);
+            elementStack.push(el);
+        }
+
+        @Override
+        public void endElement(final String uri, final String localName,
+                               final String qName) {
+            addTextIfNeeded();
+            final Element closedEl = elementStack.pop();
+            if (elementStack.isEmpty()) { // Is this the root element?
+                doc.appendChild(closedEl);
+            } else {
+                final Element parentEl = elementStack.peek();
+                parentEl.appendChild(closedEl);
+            }
+        }
+
+        @Override
+        public void characters(final char ch[], final int start,
+                               final int length) throws SAXException {
+            textBuffer.append(ch, start, length);
+        }
+
+        // Outputs text accumulated under the current node
+        private void addTextIfNeeded() {
+            if (textBuffer.length() > 0) {
+                final Element el = elementStack.peek();
+                final Node textNode = doc.createTextNode(textBuffer
+                        .toString());
+                el.appendChild(textNode);
+                textBuffer.delete(0, textBuffer.length());
+            }
+        }
+    }
+
+    public PositionalXmlReader() {
+
+    }
 
     /**
      * Read xml.
      *
-     * @param is the is
+     * @param is the input
      * @return the document
      * @throws IOException  Signals that an I/O exception has occurred.
      * @throws SAXException the SAX exception
      */
-    public static Document readXML(final InputStream is) throws IOException,
-            SAXException {
-        final Document doc;
-        SAXParser parser;
+    public Document readXML(final InputStream is) throws IOException, SAXException {
+        ensureInitialized();
+        Document doc = docBuilder.newDocument();
+        DefaultHandler handler = new SkunkXmlHandler(doc);
         try {
-            final SAXParserFactory factory = SAXParserFactory.newInstance();
+            parser.parse(is, handler);
+        } finally {
+            parser.reset();
+        }
+        return doc;
+    }
+
+    private boolean initialized = false;
+
+    private synchronized void ensureInitialized() throws SAXException {
+        if (initialized) return;
+        try {
+            SAXParserFactory factory = SAXParserFactory.newInstance();
             parser = factory.newSAXParser();
-            final DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory
-                    .newInstance();
-            final DocumentBuilder docBuilder = docBuilderFactory
-                    .newDocumentBuilder();
-            doc = docBuilder.newDocument();
+            final DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
+            docBuilder = docBuilderFactory.newDocumentBuilder();
         } catch (final ParserConfigurationException e) {
             throw new RuntimeException(
                     "Can't create SAX parser / DOM builder.", e);
         }
-
-        final Stack<Element> elementStack = new Stack<Element>();
-        final StringBuilder textBuffer = new StringBuilder();
-        final DefaultHandler handler = new DefaultHandler() {
-            private Locator locator;
-
-            @Override
-            public void setDocumentLocator(final Locator locator) {
-                this.locator = locator; // Save the locator, so that it can be
-                // used later for line tracking when
-                // traversing nodes.
-            }
-
-            @Override
-            public void startElement(final String uri, final String localName,
-                                     final String qName, final Attributes attributes)
-                    throws SAXException {
-                addTextIfNeeded();
-                final Element el = doc.createElement(qName);
-                for (int i = 0; i < attributes.getLength(); i++) {
-                    el.setAttribute(attributes.getQName(i),
-                            attributes.getValue(i));
-                }
-                el.setUserData(LINE_NUMBER_KEY_NAME, this.locator.getLineNumber(), null);
-                elementStack.push(el);
-            }
-
-            @Override
-            public void endElement(final String uri, final String localName,
-                                   final String qName) {
-                addTextIfNeeded();
-                final Element closedEl = elementStack.pop();
-                if (elementStack.isEmpty()) { // Is this the root element?
-                    doc.appendChild(closedEl);
-                } else {
-                    final Element parentEl = elementStack.peek();
-                    parentEl.appendChild(closedEl);
-                }
-            }
-
-            @Override
-            public void characters(final char ch[], final int start,
-                                   final int length) throws SAXException {
-                textBuffer.append(ch, start, length);
-            }
-
-            // Outputs text accumulated under the current node
-            private void addTextIfNeeded() {
-                if (textBuffer.length() > 0) {
-                    final Element el = elementStack.peek();
-                    final Node textNode = doc.createTextNode(textBuffer
-                            .toString());
-                    el.appendChild(textNode);
-                    textBuffer.delete(0, textBuffer.length());
-                }
-            }
-        };
-
-        parser.parse(is, handler);
-        
-        return doc;
+        initialized = true;
     }
 }
