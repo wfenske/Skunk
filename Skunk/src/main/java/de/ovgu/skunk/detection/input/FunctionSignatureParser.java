@@ -719,7 +719,7 @@ public class FunctionSignatureParser {
     }
 
     private static int get1BasedNodeLineNumber(Node node) {
-        int xmlStartLoc = Integer.parseInt((String) node.getUserData("lineNumber"));
+        int xmlStartLoc = (Integer) node.getUserData(PositionalXmlReader.LINE_NUMBER_KEY_NAME);
         // The srcML representation starts with a one-line XML declaration, which we subtract here.
         return xmlStartLoc - 1;
     }

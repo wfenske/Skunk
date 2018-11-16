@@ -118,7 +118,7 @@ public class SrcMlFolderReader {
         NodeList directives = doc.getElementsByTagName("cpp:directive");
         for (int i = 0; i < directives.getLength(); i++) {
             Node current = directives.item(i);
-            if (Integer.parseInt((String) current.getUserData("lineNumber")) == featureRef.start + 1) {
+            if ((Integer) current.getUserData(PositionalXmlReader.LINE_NUMBER_KEY_NAME) == (featureRef.start + 1)) {
                 // parent contains the if/endif values
                 return current.getParentNode();
             }
@@ -148,7 +148,7 @@ public class SrcMlFolderReader {
         // check sibling nodes until a granularity defining tag is found or
         // until the end1 of the annotation
         Node sibling = current;
-        while (sibling != null && Integer.parseInt((String) sibling.getUserData("lineNumber")) <= featureRef.end + 1) {
+        while (sibling != null && (((Integer) sibling.getUserData(PositionalXmlReader.LINE_NUMBER_KEY_NAME)) <= (featureRef.end + 1))) {
             // set granularity and try to assign a discipline
             featureRef.SetGranularity(sibling);
             featureRef.SetDiscipline(sibling);
