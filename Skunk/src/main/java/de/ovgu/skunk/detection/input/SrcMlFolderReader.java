@@ -4,6 +4,7 @@ import de.ovgu.skunk.detection.data.*;
 import de.ovgu.skunk.util.GroupingListMap;
 import org.apache.log4j.Logger;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
@@ -128,8 +129,8 @@ public class SrcMlFolderReader {
         // location by using the start1 position
         NodeList directives = doc.getElementsByTagName("cpp:directive");
         for (int i = 0; i < directives.getLength(); i++) {
-            Node current = directives.item(i);
-            if ((Integer) current.getUserData(PositionalXmlReader.LINE_NUMBER_KEY_NAME) == (featureRef.start + 1)) {
+            Element current = (Element) directives.item(i);
+            if (PositionalXmlReader.getNodeLineNumberAsIs(current) == (featureRef.start + 1)) {
                 // parent contains the if/endif values
                 return current.getParentNode();
             }
@@ -159,7 +160,7 @@ public class SrcMlFolderReader {
         // check sibling nodes until a granularity defining tag is found or
         // until the end1 of the annotation
         Node sibling = current;
-        while (sibling != null && (((Integer) sibling.getUserData(PositionalXmlReader.LINE_NUMBER_KEY_NAME)) <= (featureRef.end + 1))) {
+        while (sibling != null && (PositionalXmlReader.getNodeLineNumberAsIs((Element) sibling) <= (featureRef.end + 1))) {
             // set granularity and try to assign a discipline
             featureRef.SetGranularity(sibling);
             featureRef.SetDiscipline(sibling);
@@ -362,7 +363,8 @@ public class SrcMlFolderReader {
      */
     public static ParsedFunctionSignature parseFunctionSignature(Node functionNode, String path) {
         FunctionSignatureParser parser = new FunctionSignatureParser(functionNode, path);
-        return parser.parseFunctionSignature();
+        ParsedFunctionSignature result = parser.parseFunctionSignature();
+        return result;
     }
 
     /**

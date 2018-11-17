@@ -23,11 +23,17 @@ public class PositionalXmlReader {
     /**
      * The Constant LINE_NUMBER_KEY_NAME.
      */
-    final static String LINE_NUMBER_KEY_NAME = "lineNumber";
-    final static String END_NUMBER_KEY_NAME = "endlineNumber";
+    private final static String LINE_NUMBER_KEY_NAME = "lineNumber";
     private SAXParser parser;
     private DocumentBuilder docBuilder;
     private Document doc;
+
+    public static int getNodeLineNumberAsIs(Element element) {
+        int xmlStartLoc = (Integer) element.getUserData(PositionalXmlReader.LINE_NUMBER_KEY_NAME);
+//        // The srcML representation starts with a one-line XML declaration, which we subtract here.
+//        xmlStartLoc--;
+        return xmlStartLoc;
+    }
 
     private static class SkunkXmlHandler extends DefaultHandler {
         private final Stack<Element> elementStack = new Stack<Element>();
@@ -54,9 +60,11 @@ public class PositionalXmlReader {
             addTextIfNeeded();
             final Element el = doc.createElement(qName);
             for (int i = 0; i < attributes.getLength(); i++) {
-                el.setAttribute(attributes.getQName(i),
-                        attributes.getValue(i));
+                final String attrQName = attributes.getQName(i);
+                final String attrValue = attributes.getValue(i);
+                el.setAttribute(attrQName, attrValue);
             }
+
             el.setUserData(LINE_NUMBER_KEY_NAME, this.locator.getLineNumber(), null);
             elementStack.push(el);
         }

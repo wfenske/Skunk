@@ -1,6 +1,7 @@
 package de.ovgu.skunk.detection.input;
 
 import org.apache.log4j.Logger;
+import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
@@ -719,7 +720,7 @@ public class FunctionSignatureParser {
     }
 
     private static int get1BasedNodeLineNumber(Node node) {
-        int xmlStartLoc = (Integer) node.getUserData(PositionalXmlReader.LINE_NUMBER_KEY_NAME);
+        int xmlStartLoc = PositionalXmlReader.getNodeLineNumberAsIs((Element) node);
         // The srcML representation starts with a one-line XML declaration, which we subtract here.
         return xmlStartLoc - 1;
     }
