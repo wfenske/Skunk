@@ -24,9 +24,11 @@ import java.util.Map;
  */
 public class SrcMlFolderReader {
     private static Logger LOG = Logger.getLogger(SrcMlFolderReader.class);
+
     private final Context ctx;
     private final PositionalXmlReader reader;
     Map<String, Document> srcmlFilesByFileKey = new HashMap<>();
+    private final IMethodFactory methodFactory;
 
     /**
      * Instantiates a new srcML folder reader.
@@ -42,9 +44,19 @@ public class SrcMlFolderReader {
      *
      * @param ctx Context object
      */
-    public SrcMlFolderReader(Context ctx, PositionalXmlReader reader) {
+    protected SrcMlFolderReader(Context ctx, PositionalXmlReader reader) {
+        this(ctx, reader, Method::new);
+    }
+
+    /**
+     * Instantiates a new srcML folder reader using the given XML reader and method factory
+     *
+     * @param ctx Context object
+     */
+    public SrcMlFolderReader(Context ctx, PositionalXmlReader reader, IMethodFactory methodFactory) {
         this.ctx = ctx;
         this.reader = reader;
+        this.methodFactory = methodFactory;
     }
 
     /**
@@ -273,9 +285,8 @@ public class SrcMlFolderReader {
     private Method parseFunctionUsingSignature(Node funcNode, String filePath, String fileDesignator, ParsedFunctionSignature functionSignature) {
         String textContent = funcNode.getTextContent();
         int len = countLines(textContent);
-        return new Method(ctx, functionSignature.signature, filePath, functionSignature.cStartLoc, len, functionSignature.originalLinesOfCode
-                //, textContent
-        );
+        return methodFactory.create(ctx, functionSignature.signature, filePath, functionSignature.cStartLoc, len,
+                functionSignature.originalLinesOfCode, textContent);
     }
 
     private void internAllFunctions() {
@@ -381,6 +392,25 @@ public class SrcMlFolderReader {
         int result = 0;
         for (char cur : charArray) {
             if (cur == '\n') result++;
+        }
+        final int len = charArray.length;
+        if ((len > 0) && (charArray[len - 1] != '\n')) {
+            result++;
+        }
+        return result;
+    }
+
+    public static int countSloc(String grossCode) {
+        String noComments = FunctionSignatureParser.removeComments(grossCode, false);
+        char[] charArray = noComments.toCharArray();
+        int result = 0;
+        boolean sawNonWhiteSpace = false;
+        for (char cur : charArray) {
+            if (!Character.isWhitespace(cur)) sawNonWhiteSpace = true;
+            if (cur == '\n') {
+                if (sawNonWhiteSpace) result++;
+                sawNonWhiteSpace = false;
+            }
         }
         final int len = charArray.length;
         if ((len > 0) && (charArray[len - 1] != '\n')) {

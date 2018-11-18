@@ -283,7 +283,7 @@ public class FunctionSignatureParser {
         return postProcessSignature(noComments, cStartLoc, loc);
     }
 
-    static String removeComments(String inputString, boolean removeStringAndCharLiterals) {
+    public static String removeComments(String inputString, boolean removeStringAndCharLiterals) {
         // We expect comments in function signatures to be rare, so before we start expensive calculations make sure
         // we may even have a comment.
         boolean mayHaveComments = (inputString.indexOf("/*") != -1) || (inputString.indexOf("//") != -1);

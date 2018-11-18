@@ -73,7 +73,7 @@ public class Method {
     /**
      * The lines of code of the function, excluding empty lines.
      */
-    private int netLoc = -1;
+    protected int netLoc = -1;
 
     /**
      * The lines of feature code inside the method.
@@ -124,9 +124,7 @@ public class Method {
      *                                  (including line breaks, comments, etc.)
      */
     public Method(Context ctx, String signature, String filePath, int start1, int grossLoc
-                  //, String sourceCode
-            , int signatureGrossLinesOfCode
-    ) {
+            , int signatureGrossLinesOfCode, String fullFunctionCode) {
         this.ctx = ctx;
         this.originalFunctionSignature = signature;
         this.uniqueFunctionSignature = signature;
@@ -360,7 +358,8 @@ public class Method {
     }
 
     /**
-     * @return <code>true</code> iff there are other, alternative function definitions in the same file that have the same signature
+     * @return <code>true</code> iff there are other, alternative function definitions in the same file that have the
+     * same signature
      */
     public boolean hasAlternativeDefinitions() {
         return !originalFunctionSignature.equals(uniqueFunctionSignature);
