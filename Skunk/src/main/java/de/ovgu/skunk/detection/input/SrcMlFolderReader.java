@@ -388,15 +388,20 @@ public class SrcMlFolderReader {
      * @return number of lines
      */
     public static int countLines(String str) {
-        char[] charArray = str.toCharArray();
         int result = 0;
-        for (char cur : charArray) {
-            if (cur == '\n') result++;
+
+        final int len = str.length();
+
+        char lastChar = '\0';
+        for (int i = 0; i < len; i++) {
+            lastChar = str.charAt(i);
+            if (lastChar == '\n') result++;
         }
-        final int len = charArray.length;
-        if ((len > 0) && (charArray[len - 1] != '\n')) {
+
+        if ((len > 0) && (lastChar != '\n')) {
             result++;
         }
+
         return result;
     }
 

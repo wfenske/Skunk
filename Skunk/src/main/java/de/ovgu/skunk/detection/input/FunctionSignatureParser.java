@@ -144,28 +144,32 @@ public class FunctionSignatureParser {
 
         int startOfSignature = get1BasedNodeLineNumber(functionNode);
         int endOfSignature = get1BasedNodeLineNumber(lastNode);
-        int loc = endOfSignature - startOfSignature;
+        int loc = endOfSignature + 1 - startOfSignature;
+        final String signature = result.toString();
         if (loc < 1) {
-            LOG.info("Computed signature LOC " + loc + " for function " + result.toString() + ". Adjusting to 1.");
+            LOG.info("Computed signature LOC " + loc + " for function " + signature + ". Adjusting to 1.");
             loc = 1;
         }
 
-        return postProcessSignature(result.toString(), startOfSignature, loc);
+        return postProcessSignature(signature, startOfSignature, loc);
     }
 
     private void parseUpToIncludingFunctionName() throws FunctionSignatureParseException {
         Node returnType = getNodeOrDie(functionNode, "./type");
-        List<Node> returnTypeSpecifiers = getPossiblyEmptyNodeList(returnType, "./type/specifier");
+        List<Node> returnTypeSpecifiers = getPossiblyEmptyNodeList(returnType, "./specifier");
         for (Node returnTypeSpecifier : returnTypeSpecifiers) {
             String content = returnTypeSpecifier.getTextContent();
-            result.append(' ').append(content);
+            if (result.length() > 0) result.append(' ');
+            result.append(content);
         }
         Node returnTypeName = getNodeOrDie(returnType, "./name");
         String returnTypeNameString = returnTypeName.getTextContent();
-        result.append(' ').append(returnTypeNameString);
+        if (result.length() > 0) result.append(' ');
+        result.append(returnTypeNameString);
         Node functionName = getNodeOrDie(functionNode, "./name");
         String functionNameString = functionName.getTextContent();
-        result.append(' ').append(functionNameString);
+        if (result.length() > 0) result.append(' ');
+        result.append(functionNameString);
     }
 
 //        private void parseKandRFunctionParamList() throws FunctionSignatureParseException {
