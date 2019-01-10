@@ -4,27 +4,26 @@
 <log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
 
     <appender name="stderr" class="org.apache.log4j.ConsoleAppender">
-        <param name="threshold" value="INFO"/>
+        <param name="threshold" value="trace"/>
         <param name="target" value="System.err"/>
         <layout class="org.apache.log4j.PatternLayout">
-            <param name="ConversionPattern" value="%d{HH:mm:ss} %5p %m%n"/>
+            <!--param name="ConversionPattern" value="%d{HH:mm:ss} %5p %m%n"/-->
+            <param name="ConversionPattern" value="%5p %m%n"/>
             <!--param name="ConversionPattern" value="%-5p %d [%t][%F:%L] : %m%n" /-->
         </layout>
     </appender>
 
-    <category name="de.ovgu.skunk.detection.input.SrcMlFolderReader">
-        <priority value="DEBUG"/>
-        <appender-ref ref="stderr"/>
-    </category>
+    <logger name="de.ovgu.skunk">
+        <level value="info"/>
+    </logger>
 
-    <category name="de.ovgu.skunk">
-        <priority value="INFO"/>
-        <appender-ref ref="stderr"/>
-    </category>
+    <logger name="de.ovgu.skunk.detection.input.SrcMlFolderReader">
+        <level value="info"/>
+    </logger>
 
-    <category name="/">
-        <priority value="INFO"/>
+    <root>
+        <priority value="info"/>
         <appender-ref ref="stderr"/>
-    </category>
+    </root>
 
 </log4j:configuration>
