@@ -17,7 +17,7 @@ add_to_cp()
 real_me=$(realpath -- "$0")
 me_dir=$(dirname -- "${real_me}")
 maven_repo=$HOME/.m2/repository
-o_jvm="-Xmx4g"
+o_jvm="-Xmx8g"
 
 # commons-cli
 add_to_cp "${maven_repo}"/commons-cli/commons-cli/1.3/commons-cli-1.3.jar
