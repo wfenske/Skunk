@@ -3,14 +3,18 @@
  */
 package de.ovgu.skunk.util;
 
-import java.io.File;
-import java.io.IOException;
+import org.apache.log4j.Logger;
+
+import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.function.Consumer;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 /**
  * Utility functions for dealing with file paths
@@ -18,6 +22,8 @@ import java.util.List;
  * @author wfenske
  */
 public final class FileUtils {
+    private static Logger LOG = Logger.getLogger(FileUtils.class);
+
     public static final Charset DEFAULT_CHARSET = Charset.forName("utf-8");
 
     /**
@@ -202,5 +208,29 @@ public final class FileUtils {
 
     public static void write(File file, CharSequence contents) throws IOException {
         org.apache.commons.io.FileUtils.write(file, contents, DEFAULT_CHARSET);
+    }
+
+    public static void writeGzipped(File file, Consumer<Writer> dataProvider) throws IOException {
+        try (Writer out = new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(file)), DEFAULT_CHARSET)) {
+            dataProvider.accept(out);
+        } catch (IOException | RuntimeException ex) {
+            LOG.warn("Exception while writing file " + file + ". Trying to remove file.", ex);
+            try {
+                boolean deleted = file.delete();
+                if (!deleted) {
+                    LOG.error("Failed to delete likely incomplete output file " + file + ". Delete file manually!");
+                }
+            } catch (RuntimeException deletionEx) {
+                LOG.error("Exception while trying to delete likely incomplete output file " + file + "." +
+                        " Delete file manually!", deletionEx);
+            }
+            throw ex;
+        }
+    }
+
+    public static void readGzipped(File file, Consumer<Reader> dataSink) throws IOException {
+        try (Reader r = new InputStreamReader(new GZIPInputStream(new FileInputStream(file)), FileUtils.DEFAULT_CHARSET)) {
+            dataSink.accept(r);
+        }
     }
 }

@@ -3,7 +3,10 @@ package de.ovgu.skunk.detection.data;
 import com.thoughtworks.xstream.XStream;
 import de.ovgu.skunk.util.FileUtils;
 
+import java.io.Reader;
+import java.io.Writer;
 import java.util.*;
+import java.util.function.Consumer;
 
 public class FileCollection {
     private final Context ctx;
@@ -90,7 +93,7 @@ public class FileCollection {
      *
      * @return A xml representation of this object.
      */
-    public String SerializeFiles() {
+    public Consumer<Writer> SerializeFiles() {
         // nullify already processed data for memory reasons
         List<File> fileList = new ArrayList<>(Files.values());
         for (File file : fileList) {
@@ -98,18 +101,17 @@ public class FileCollection {
             file.loac.clear();
         }
         XStream stream = new XStream();
-        String xmlFeatures = stream.toXML(fileList);
-        return xmlFeatures;
+        return (writer -> stream.toXML(fileList, writer));
     }
 
     /**
-     * Deserializes an xml string into the collection.
+     * Deserializes the XML provided by the reader into the collection.
      *
-     * @param xmlFile the serialized xml representation
+     * @param xmlFileReader reader providing the serialized XML representation
      */
-    public void DeserialzeFiles(java.io.File xmlFile) {
+    public void DeserializeFiles(Reader xmlFileReader) {
         XStream stream = new XStream();
-        List<File> fileList = (List<File>) stream.fromXML(xmlFile);
+        List<File> fileList = (List<File>) stream.fromXML(xmlFileReader);
         for (File f : fileList) {
             String key = KeyFromFilePath(f.filePath);
             Files.put(key, f);

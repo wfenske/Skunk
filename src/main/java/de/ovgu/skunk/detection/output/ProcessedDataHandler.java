@@ -1,13 +1,17 @@
 package de.ovgu.skunk.detection.output;
 
 import de.ovgu.skunk.detection.data.Context;
+import de.ovgu.skunk.util.FileUtils;
+import org.apache.log4j.Logger;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Writer;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 
 /**
  * The Class ProcessedDataHandler saves the data that is created by the CppStats
@@ -15,41 +19,42 @@ import java.util.Set;
  * again.
  */
 public class ProcessedDataHandler {
+    private static Logger LOG = Logger.getLogger(ProcessedDataHandler.class);
     private final Context ctx;
 
     private enum ProcessedDataFile {
         FEATURES {
             @Override
             public String filename(Context ctx) {
-                return ctx.getProcessedDataFilenamePrefix() + "features.xml";
+                return ctx.getProcessedDataFilenamePrefix() + "features.xml.gz";
             }
 
             @Override
             public void save(Context ctx, SimpleFileWriter writer) throws IOException {
-                String contents = ctx.featureExpressions.SerializeFeatures();
-                writer.write(new File(filename(ctx)), contents);
+                Consumer<Writer> xmlProvider = ctx.featureExpressions.SerializeFeatures();
+                writer.writeGzipped(new File(filename(ctx)), xmlProvider);
             }
 
             @Override
-            public void load(Context ctx, File file) {
-                ctx.featureExpressions.DeserialzeFeatures(file);
+            public void load(Context ctx, File file) throws IOException {
+                FileUtils.readGzipped(file, reader -> ctx.featureExpressions.DeserializeFeatures(reader));
             }
         },
         FUNCTIONS {
             @Override
             public String filename(Context ctx) {
-                return ctx.getProcessedDataFilenamePrefix() + "functions.xml";
+                return ctx.getProcessedDataFilenamePrefix() + "functions.xml.gz";
             }
 
             @Override
             public void save(Context ctx, SimpleFileWriter writer) throws IOException {
-                String contents = ctx.functions.SerializeMethods();
-                writer.write(new File(filename(ctx)), contents);
+                Consumer<Writer> xmlProvider = ctx.functions.SerializeMethods();
+                writer.writeGzipped(new File(filename(ctx)), xmlProvider);
             }
 
             @Override
-            public void load(Context ctx, File file) {
-                ctx.functions.deserializeMethods(file);
+            public void load(Context ctx, File file) throws IOException {
+                FileUtils.readGzipped(file, reader -> ctx.functions.deserializeMethods(reader));
             }
         },
         GENERAL {
@@ -82,17 +87,18 @@ public class ProcessedDataHandler {
         FILES {
             @Override
             public String filename(Context ctx) {
-                return ctx.getProcessedDataFilenamePrefix() + "files.xml";
+                return ctx.getProcessedDataFilenamePrefix() + "files.xml.gz";
             }
 
             @Override
             public void save(Context ctx, SimpleFileWriter writer) throws IOException {
-                writer.write(new File(filename(ctx)), ctx.files.SerializeFiles());
+                Consumer<Writer> xmlProvider = ctx.files.SerializeFiles();
+                writer.writeGzipped(new File(filename(ctx)), xmlProvider);
             }
 
             @Override
-            public void load(Context ctx, File file) {
-                ctx.files.DeserialzeFiles(file);
+            public void load(Context ctx, File file) throws IOException {
+                FileUtils.readGzipped(file, reader -> ctx.files.DeserializeFiles(reader));
             }
         };
 
@@ -122,19 +128,25 @@ public class ProcessedDataHandler {
      * features file and a method file
      */
     public void SaveProcessedData() {
-        System.out.println();
-        System.out.print("Saving processed data ...");
+        LOG.info("Saving processed data ...");
 
         // Save files
         final SimpleFileWriter writer = new SimpleFileWriter();
+        ProcessedDataFile currentFile = null;
         try {
             for (ProcessedDataFile f : ProcessedDataFile.values()) {
+                currentFile = f;
+                LOG.info("Writing output for " + f);
                 f.save(ctx, writer);
+                LOG.info("Done writing output for " + f);
             }
         } catch (IOException e) {
+            LOG.error("Writing output for " + currentFile + " failed.", e);
             throw new RuntimeException("I/O exception while saving processed data files", e);
         }
-        System.out.printf(" done. Files (%s) saved in `%s'.\n", writer.prettyFileNameList(), writer.getDirForDisplay());
+
+        String msg = String.format("Done saving processed data. Files (%s) saved in `%s'.\n", writer.prettyFileNameList(), writer.getDirForDisplay());
+        LOG.info(msg);
     }
 
     /**

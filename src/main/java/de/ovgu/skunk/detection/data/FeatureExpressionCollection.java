@@ -2,8 +2,10 @@ package de.ovgu.skunk.detection.data;
 
 import com.thoughtworks.xstream.XStream;
 
-import java.io.File;
+import java.io.Reader;
+import java.io.Writer;
 import java.util.*;
+import java.util.function.Consumer;
 
 /**
  * The Class FeatureExpressionCollection.
@@ -125,21 +127,21 @@ public class FeatureExpressionCollection {
      *
      * @return A xml representation of this object.
      */
-    public String SerializeFeatures() {
+    public Consumer<Writer> SerializeFeatures() {
         XStream stream = new XStream();
         ArrayList<Feature> listOfFeatures = new ArrayList<>(_features.values());
-        String xmlFeatures = stream.toXML(listOfFeatures);
-        return xmlFeatures;
+
+        return (writer -> stream.toXML(listOfFeatures, writer));
     }
 
     /**
-     * Deserializes an xml string into the collection.
+     * Deserializes the XML provided by the reader into the collection.
      *
-     * @param xmlFile the serialized xml representation
+     * @param xmlFileReader reader providing the serialized XML representation
      */
-    public void DeserialzeFeatures(File xmlFile) {
+    public void DeserializeFeatures(Reader xmlFileReader) {
         XStream stream = new XStream();
-        List<Feature> listOfFeatures = (List<Feature>) stream.fromXML(xmlFile);
+        List<Feature> listOfFeatures = (List<Feature>) stream.fromXML(xmlFileReader);
         for (Feature feature : listOfFeatures) {
             _features.put(feature.Name, feature);
         }

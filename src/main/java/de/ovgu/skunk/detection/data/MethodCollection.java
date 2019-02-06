@@ -4,8 +4,10 @@ import com.thoughtworks.xstream.XStream;
 import de.ovgu.skunk.detection.input.ParsedFunctionSignature;
 import de.ovgu.skunk.util.LinkedGroupingListMap;
 
-import java.io.File;
+import java.io.Reader;
+import java.io.Writer;
 import java.util.*;
+import java.util.function.Consumer;
 
 /**
  * The Class MethodCollection.
@@ -102,7 +104,7 @@ public class MethodCollection {
      *
      * @return A xml representation of this object.
      */
-    public String SerializeMethods() {
+    public Consumer<Writer> SerializeMethods() {
         for (Method meth : AllMethods()) {
             meth.loac.clear();
         }
@@ -117,8 +119,8 @@ public class MethodCollection {
             }
             methodsForSerialization.put(filename, methodList);
         }
-        String xmlFeatures = stream.toXML(methodsForSerialization);
-        return xmlFeatures;
+
+        return (writer -> stream.toXML(methodsForSerialization, writer));
     }
 
     public Iterable<Method> AllMethods() {
@@ -164,13 +166,13 @@ public class MethodCollection {
     }
 
     /**
-     * Deserializes an XML string into the collection.
+     * Deserializes the XML provided by the reader into the collection.
      *
-     * @param xmlFile File holding the serialized xml representation
+     * @param xmlFileReader Reader providing the serialized XML representation
      */
-    public void deserializeMethods(File xmlFile) {
+    public void deserializeMethods(Reader xmlFileReader) {
         XStream stream = new XStream();
-        Map<String, List<Method>> deserializedMethods = (Map<String, List<Method>>) stream.fromXML(xmlFile);
+        Map<String, List<Method>> deserializedMethods = (Map<String, List<Method>>) stream.fromXML(xmlFileReader);
         for (Map.Entry<String, List<Method>> e : deserializedMethods.entrySet()) {
             final LinkedGroupingListMap<String, Method> methodsBySignature = new LinkedGroupingListMap<>();
             methodsPerFile.put(e.getKey(), methodsBySignature);

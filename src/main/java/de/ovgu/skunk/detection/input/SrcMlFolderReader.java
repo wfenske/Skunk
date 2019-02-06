@@ -77,6 +77,7 @@ public class SrcMlFolderReader {
                 this.processFeatureReference(ref);
             }
         }
+        LOG.info("Done processing feature locations.");
     }
 
     private void readAllSrcMlDocs() {
@@ -294,6 +295,7 @@ public class SrcMlFolderReader {
         for (File file : ctx.files.AllFiles()) {
             internAllFunctionsInFile(file);
         }
+        LOG.info("Done parsing all functions in all files.");
     }
 
     public void internAllFunctionsInFile(File file) {
