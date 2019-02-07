@@ -581,7 +581,8 @@ public class FunctionSignatureParser {
         // Trim whitespace off beginning and end
         int last = signature.length() - 1;
         while (last >= 0) {
-            if (Character.isWhitespace(chars[last])) {
+            char c = chars[last];
+            if (Character.isWhitespace(c) || (c == '\\')) {
                 last--;
             } else break;
         }
@@ -594,12 +595,18 @@ public class FunctionSignatureParser {
         while (i <= last) {
             char c = chars[i++];
 
+            // Skip '\' followed by newline and treat it as if the line would just continue.
+            if ((c == '\\') && (i <= last) && (chars[i] == '\n')) {
+                i++;
+                continue;
+            }
+
             // Convert all whitespace characters into a single space
             if (Character.isWhitespace(c)) c = ' ';
 
             boolean requireSpaceAsNextChar = false;
             switch (c) {
-                // No space after another space, and no space after opening parenthesis
+                // No space after another space, and no space after an opening parenthesis
                 case ' ':
                     switch (lastChar) {
                         case ' ':

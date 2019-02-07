@@ -32,6 +32,15 @@ public class FunctionSignatureParserTest {
                 , /* An actual example from OpenLDAP */
                 {"void ldif_sput( char **out, int type, LDAP_CONST char *name, LDAP_CONST char *val, ber_len_t vlen )",
                         "void ldif_sput(char * * out, int type, LDAP_CONST char * name, LDAP_CONST char * val, ber_len_t vlen)"}
+                , /* An actual example from Blender (3D modelling tool) */
+                {"void info_depsgraphview_main(const struct bContext *C, struct ARegion *ar)\\\n",
+                        "void info_depsgraphview_main(const struct bContext * C, struct ARegion * ar)"}
+                , {"void info_depsgraphview_main(const struct bContext *C, struct ARegion *ar)\\",
+                "void info_depsgraphview_main(const struct bContext * C, struct ARegion * ar)"}
+                , /* Another one from Blender */
+                {"static void xdnd_send_status (DndClass * dnd, Window window, Window from, int will_accept, \\\n" +
+                        "              int want_position, int x, int y, int w, int h, Atom action)\n",
+                        "static void xdnd_send_status(DndClass * dnd, Window window, Window from, int will_accept, int want_position, int x, int y, int w, int h, Atom action)"}
         };
     }
 
