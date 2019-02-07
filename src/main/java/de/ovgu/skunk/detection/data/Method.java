@@ -29,7 +29,7 @@ public class Method {
         }
     };
 
-    private static final Pattern FUNCTION_NAME = Pattern.compile("^.*\\b(\\w+)\\s*\\(");
+    private static final Pattern FUNCTION_NAME = Pattern.compile("^[^(]*\\b(\\w+)\\s*\\(");
 
     private final Context ctx;
 //    /**
