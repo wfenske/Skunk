@@ -30,8 +30,6 @@ public class PositionalXmlReader {
 
     public static int getNodeLineNumberAsIs(Element element) {
         int xmlStartLoc = (Integer) element.getUserData(PositionalXmlReader.LINE_NUMBER_KEY_NAME);
-//        // The srcML representation starts with a one-line XML declaration, which we subtract here.
-//        xmlStartLoc--;
         return xmlStartLoc;
     }
 
