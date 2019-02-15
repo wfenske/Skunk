@@ -28,7 +28,7 @@ public class PositionalXmlReader {
     private DocumentBuilder docBuilder;
     private Document doc;
 
-    public static int getNodeLineNumberAsIs(Element element) {
+    public static int getElementLineNumberAsIs(Element element) {
         int xmlStartLoc = (Integer) element.getUserData(PositionalXmlReader.LINE_NUMBER_KEY_NAME);
         return xmlStartLoc;
     }

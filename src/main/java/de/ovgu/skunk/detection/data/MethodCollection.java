@@ -37,15 +37,20 @@ public class MethodCollection {
     /**
      * Adds the method to file.
      *
-     * @param fileName the name of the srcML source file (usually something like <code>&quot;alloc.c.xml&quot;</code>)
-     * @param method   the method
+     * @param fp     the name of the srcML source file (usually something like <code>&quot;alloc.c.xml&quot;</code>)
+     * @param method the method
      */
-    public void AddFunctionToFile(String fileName, Method method) {
-        LinkedGroupingListMap<String, Method> methodsBySignature = findMethodsForFile(fileName);
+    public void AddFunctionToFile(FilePath fp, Method method) {
+        LinkedGroupingListMap<String, Method> methodsBySignature = findMethodsForFile(fp);
+
         if (methodsBySignature == null) {
-            methodsBySignature = new LinkedGroupingListMap<>();
-            String fileKey = FileCollection.KeyFromFilePath(fileName);
-            methodsPerFile.put(fileKey, methodsBySignature);
+            methodsBySignature = new LinkedGroupingListMap<String, Method>() {
+                @Override
+                protected List newCollection() {
+                    return new ArrayList(1);
+                }
+            };
+            methodsPerFile.put(fp.pathKey, methodsBySignature);
         }
 
         methodsBySignature.put(method.originalFunctionSignature, method);
@@ -54,15 +59,15 @@ public class MethodCollection {
     /**
      * Gets the method of a file based on the function signature
      *
-     * @param fileDesignator    a string denoting the source file. This can either be the name of the SrcML file or the
+     * @param fp                a string denoting the source file. This can either be the name of the SrcML file or the
      *                          key generated from this file name, pointing to the actual C file from which the SrcML
      *                          was generated.
      * @param functionSignature the function signature
      * @return the method, if found, <code>null</code> otherwise
      */
-    public Method FindFunction(String fileDesignator, ParsedFunctionSignature functionSignature) {
+    public Method FindFunction(FilePath fp, ParsedFunctionSignature functionSignature) {
         // get the method based on the method signature
-        LinkedGroupingListMap<String, Method> functionsForFile = findMethodsForFile(fileDesignator);
+        LinkedGroupingListMap<String, Method> functionsForFile = findMethodsForFile(fp);
         if (functionsForFile == null) {
             return null;
         }
@@ -80,9 +85,8 @@ public class MethodCollection {
         return null;
     }
 
-    private LinkedGroupingListMap<String, Method> findMethodsForFile(String fileDesignator) {
-        String key = FileCollection.KeyFromFilePath(fileDesignator);
-        return methodsPerFile.get(key);
+    private LinkedGroupingListMap<String, Method> findMethodsForFile(FilePath fp) {
+        return methodsPerFile.get(fp.pathKey);
     }
 
     /**

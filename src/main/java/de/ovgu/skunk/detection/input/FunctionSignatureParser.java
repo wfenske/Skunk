@@ -1,5 +1,6 @@
 package de.ovgu.skunk.detection.input;
 
+import de.ovgu.skunk.detection.data.FilePath;
 import org.apache.log4j.Logger;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -27,11 +28,11 @@ public class FunctionSignatureParser {
 
     private final String functionNodeTextContent;
     private final Node functionNode;
-    private final String filePath;
+    private final FilePath filePath;
     StringBuilder result;
     boolean debugParseExceptions = false;
 
-    public FunctionSignatureParser(Node functionNode, String filePath) {
+    public FunctionSignatureParser(Node functionNode, FilePath filePath) {
         this.functionNode = functionNode;
         this.functionNodeTextContent = functionNode.getTextContent();
         this.filePath = filePath;
@@ -718,7 +719,7 @@ public class FunctionSignatureParser {
 
     private String funcLocForReporting() {
         int startLoc = parseFunctionStartLoc(functionNode);
-        return filePath + ":" + startLoc;
+        return filePath.pathKey + ":" + startLoc;
     }
 
     /**
@@ -731,7 +732,7 @@ public class FunctionSignatureParser {
     }
 
     private static int get1BasedNodeLineNumber(Node node) {
-        int xmlStartLoc = PositionalXmlReader.getNodeLineNumberAsIs((Element) node);
+        int xmlStartLoc = PositionalXmlReader.getElementLineNumberAsIs((Element) node);
         // The srcML representation starts with a one-line XML declaration, which we subtract here.
         return xmlStartLoc - 1;
     }

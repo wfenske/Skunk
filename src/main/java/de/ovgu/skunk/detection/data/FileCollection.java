@@ -44,30 +44,43 @@ public class FileCollection {
     /**
      * Gets the file.
      *
-     * @param fileDesignator a string denoting the source file. This can either be the name
+     * @param actualFilePath a string denoting the source file. This can either be the name
      *                       of the SrcML file or the key generated from this file name,
      *                       pointing to the actual C file from which the SrcML was
      *                       generated.
      * @return the file or null, if it does not exist
      */
-    public File FindFile(String fileDesignator) {
-        String keyPath = KeyFromFilePath(fileDesignator);
-        return Files.get(keyPath);
+    public File FindFile(String actualFilePath) {
+        FilePath fp = ctx.internFilePath(actualFilePath);
+        return FindFile(fp);
+    }
+
+    /**
+     * Gets the file.
+     *
+     * @param fp a string denoting the source file. This can either be the name
+     *           of the SrcML file or the key generated from this file name,
+     *           pointing to the actual C file from which the SrcML was
+     *           generated.
+     * @return the file or null, if it does not exist
+     */
+    public File FindFile(FilePath fp) {
+        return Files.get(fp.pathKey);
     }
 
     /**
      * Intern a Skunk function into a known file.  If the file is not yet known, a {@link RuntimeException} is thrown.
      *
-     * @param fileDesignator a string denoting the source file. This can either be the name
-     *                       of the SrcML file or the key generated from this file name,
-     *                       pointing to the actual C file from which the SrcML was
-     *                       generated.
-     * @param method         The Skunk function object to intern
+     * @param fp     a string denoting the source file. This can either be the name
+     *               of the SrcML file or the key generated from this file name,
+     *               pointing to the actual C file from which the SrcML was
+     *               generated.
+     * @param method The Skunk function object to intern
      */
-    public void InternFunctionIntoExistingFile(String fileDesignator, Method method) {
-        File file = FindFile(fileDesignator);
+    public void InternFunctionIntoExistingFile(FilePath fp, Method method) {
+        File file = FindFile(fp);
         if (file == null) {
-            throw new RuntimeException("Unknown file `" + fileDesignator + "'.");
+            throw new RuntimeException("Unknown file `" + fp.pathKey + "'.");
         }
         file.InternFunction(method);
     }

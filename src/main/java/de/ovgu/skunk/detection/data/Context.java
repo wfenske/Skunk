@@ -3,6 +3,9 @@ package de.ovgu.skunk.detection.data;
 import de.ovgu.skunk.detection.detector.DetectionConfig;
 import de.ovgu.skunk.detection.output.ProcessedDataHandler;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Created by wfenske on 08.12.16.
  */
@@ -13,6 +16,7 @@ public class Context {
     public final MethodCollection functions;
     public final FeatureExpressionCollection featureExpressions;
     public final ProcessedDataHandler processedDataHandler;
+    private final Map<String, FilePath> filePathByActualPath = new HashMap<>();
 
     public Context(DetectionConfig config) {
         this.config = config;
@@ -20,6 +24,19 @@ public class Context {
         this.functions = new MethodCollection();
         this.featureExpressions = new FeatureExpressionCollection(this);
         this.processedDataHandler = new ProcessedDataHandler(this);
+    }
+
+    public FilePath internFilePath(String actualFilePath) {
+        FilePath existing = filePathByActualPath.get(actualFilePath);
+        if (existing != null) {
+            return existing;
+        }
+
+        String filePathKey = files.KeyFromFilePath(actualFilePath);
+        FilePath newPath = new FilePath(actualFilePath, filePathKey);
+        filePathByActualPath.put(actualFilePath, newPath);
+
+        return newPath;
     }
 
 
