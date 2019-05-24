@@ -29,13 +29,28 @@ public class Method {
         }
     };
 
+    /**
+     * Compares functions by file name and (unique) function signature, in ascending order.
+     */
+    public static final Comparator<? super Method> COMP_BY_FILE_AND_SIGNATURE = new Comparator<Method>() {
+        @Override
+        public int compare(Method f1, Method f2) {
+            int cmp;
+            cmp = f1.filePath.compareTo(f2.filePath);
+            if (cmp != 0) return cmp;
+            return f1.uniqueFunctionSignature.compareTo(f2.uniqueFunctionSignature);
+        }
+    };
+
     private static final Pattern FUNCTION_NAME = Pattern.compile("^[^(]*\\b(\\w+)\\s*\\(");
 
     private final Context ctx;
-//    /**
-//     * Source code of the functions, as returned from the srcml function node
-//     */
-//    private final String sourceCode;
+
+    /**
+     * Source code of the functions, as returned from the srcml function node
+     */
+    private final String sourceCode;
+
     /**
      * The original function signature, as it appears in the file
      */
@@ -122,9 +137,11 @@ public class Method {
      * @param grossLoc                  length of the function in lines of code, may include empty lines
      * @param signatureGrossLinesOfCode length of the function signature in lines of code, as it appears in the file
      *                                  (including line breaks, comments, etc.)
+     * @param filePath                  name of the file in which the function is defined
+     * @param sourceCode                Raw C code of the complete function definition
      */
     public Method(Context ctx, String signature, String filePath, int start1, int grossLoc
-            , int signatureGrossLinesOfCode, String fullFunctionCode) {
+            , int signatureGrossLinesOfCode, String sourceCode) {
         this.ctx = ctx;
         this.originalFunctionSignature = signature;
         this.uniqueFunctionSignature = signature;
@@ -150,6 +167,7 @@ public class Method {
         } else {
             this.functionName = originalFunctionSignature;
         }
+        this.sourceCode = sourceCode;
     }
 
     public void maybeAdjustMethodEndBasedOnNextFunction(Method nextFunction) {
@@ -419,10 +437,10 @@ public class Method {
         return true;
     }
 
-//    /**
-//     * @return Source code of the function as parsed by src2srcml
-//     */
-//    public String getSourceCode() {
-//        return sourceCode;
-//    }
+    /**
+     * @return Source code of the function as parsed by src2srcml
+     */
+    public String getSourceCode() {
+        return sourceCode;
+    }
 }
